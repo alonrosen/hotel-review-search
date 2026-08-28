@@ -21,8 +21,16 @@ export async function POST(req: NextRequest) {
       searchTripAdvisorRapid(query),
     ]);
 
+    const googleMapped = googleResults.status === "fulfilled" 
+      ? googleResults.value.map((res: any) => ({
+          place_id: res.business_id || res.place_id,
+          title: res.name || res.title,
+          address: res.full_address || res.address,
+        }))
+      : [];
+
     return Response.json({
-      google: googleResults.status === "fulfilled" ? googleResults.value : [],
+      google: googleMapped,
       tripadvisor: taResults.status === "fulfilled" ? taResults.value : [],
     });
   } catch (error) {
