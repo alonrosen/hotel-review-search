@@ -26,7 +26,7 @@ export async function searchGooglePlaceIdRapid(query: string) {
 export async function fetchGoogleReviewsRapid(placeId: string, limit: number = 20) {
   if (!RAPIDAPI_KEY) throw new Error("Missing RAPIDAPI_KEY");
 
-  const url = `https://${GOOGLE_API_HOST}/business-reviews?business_id=${encodeURIComponent(placeId)}&limit=${limit}&region=us&language=en`;
+  const url = `https://${GOOGLE_API_HOST}/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=${limit}&sort_by=most_relevant&region=us&language=en`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -37,7 +37,7 @@ export async function fetchGoogleReviewsRapid(placeId: string, limit: number = 2
 
   if (!res.ok) throw new Error("RapidAPI Google Reviews failed");
   const data = await res.json();
-  return data.data || [];
+  return data.data?.reviews || [];
 }
 
 
