@@ -6,7 +6,6 @@ import {
   fetchGoogleReviewsRapid,
   fetchTripAdvisorReviewsRapid,
 } from "@/lib/rapidapi";
-import { extractTripAdvisorLocationId } from "@/lib/hotels-config";
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-admin-secret");
@@ -180,4 +179,10 @@ async function upsertTripAdvisorReview(
   });
 
   return true;
+}
+
+function extractTripAdvisorLocationId(url: string): string | null {
+  // Looks for "-d123456-" or "d123456" in the URL
+  const match = url.match(/-d(\d+)-/i) || url.match(/d(\d+)/i);
+  return match ? match[1] : null;
 }
