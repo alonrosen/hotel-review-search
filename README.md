@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hotel Review Search Tool
 
-## Getting Started
+A web tool that fetches Google Maps and TripAdvisor reviews for preset hotels and lets users search within them by keyword and date range, returning direct links to matching reviews.
 
-First, run the development server:
+## Setup Instructions
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Prerequisites
+1. [Node.js](https://nodejs.org/en/) installed locally.
+2. A free [SerpAPI](https://serpapi.com/) account (provides 250 free searches/month).
+3. A PostgreSQL database. For a free tier, you can use [Neon Postgres](https://neon.tech/) (free: 0.5GB).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Local Setup
+1. Clone the repository and install dependencies:
+   ```bash
+   npm install
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Configure Environment Variables:
+   Create a `.env` file in the root based on `.env.example`:
+   ```env
+   SERPAPI_KEY=your_serpapi_key_here
+   DATABASE_URL=postgresql://user:password@host/dbname?schema=public
+   ADMIN_SECRET=change_me_to_a_random_string
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Initialize the Database (Prisma):
+   Run migrations to set up the schema:
+   ```bash
+   npx prisma db push
+   ```
 
-## Learn More
+4. Start the Application:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to view the tool.
 
-To learn more about Next.js, take a look at the following resources:
+### Admin Backoffice
+The tool includes an Admin interface to configure hotels and fetch their reviews manually.
+Navigate to `/admin` (or click "Admin" in the top bar) and use your `ADMIN_SECRET` to gain access.
+You can add hotels by name, and automatically search for their Google Place IDs and TripAdvisor URLs.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment to Vercel
+1. Push your code to a GitHub repository.
+2. Go to [Vercel](https://vercel.com/) and create a new project from your repository.
+3. In the Vercel project settings, add the Environment Variables (`SERPAPI_KEY`, `DATABASE_URL`, `ADMIN_SECRET`).
+   *If using Vercel Storage for Neon Postgres, you can add the Postgres integration.*
+4. Deploy! The project's `package.json` includes a `postinstall` script to automatically run `prisma generate`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tech Stack
+- Next.js 16 (App Router)
+- React 19
+- Prisma 7 (with `@prisma/adapter-pg`)
+- Vanilla CSS (Glassmorphism, dark mode)
+- SerpAPI for scraping Google/TripAdvisor

@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Hotel {
+  id             String   @id @default(cuid())
+  name           String
+  googlePlaceId  String?  @unique @map("google_place_id")
+  tripAdvisorId  String?  @unique @map("trip_advisor_id")
+  tripAdvisorUrl String?  @map("trip_advisor_url")
+  city           String?
+  country        String?
+  imageUrl       String?  @map("image_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  reviews        Review[]
+
+  @@map("hotels")
+}
+
+model Review {
+  id         String    @id @default(cuid())
+  hotelId    String    @map("hotel_id")
+  hotel      Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  source     String    // "google" | "tripadvisor"
+  externalId String?   @map("external_id")
+  authorName String    @map("author_name")
+  authorUrl  String?   @map("author_url")
+  rating     Int?
+  text       String
+  reviewDate DateTime? @map("review_date")
+  reviewLink String?   @map("review_link")
+  language   String?
+  fetchedAt  DateTime  @default(now()) @map("fetched_at")
+
+  @@unique([hotelId, source, externalId])
+  @@index([hotelId, source])
+  @@map("reviews")
+}
+
+model SearchLog {
+  id            String    @id @default(cuid())
+  query         String
+  hotelId       String?   @map("hotel_id")
+  asOfDate      DateTime? @map("as_of_date")
+  resultCount   Int       @map("result_count")
+  lastMatchDate DateTime? @map("last_match_date")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([query, hotelId])
+  @@map("search_logs")
+}
