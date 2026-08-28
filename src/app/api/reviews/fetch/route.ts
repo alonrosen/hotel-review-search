@@ -1,13 +1,12 @@
-/* POST /api/reviews/fetch — trigger SerpAPI fetch for a hotel's reviews */
+/* POST /api/reviews/fetch — trigger RapidAPI fetch for a hotel's reviews */
 
 import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
 import {
-  fetchGoogleReviews,
-  fetchTripAdvisorReviews,
-  extractTripAdvisorLocationId,
-} from "@/lib/serpapi";
-import type { SerpApiGoogleReview, SerpApiTripAdvisorReview } from "@/lib/types";
+  fetchGoogleReviewsRapid,
+  fetchTripAdvisorReviewsRapid,
+} from "@/lib/rapidapi";
+import { extractTripAdvisorLocationId } from "@/lib/hotels-config";
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-admin-secret");
@@ -42,26 +41,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      let nextPageToken: string | null = null;
+      // The rapid API we're using uses 'limit', so we'll just fetch a batch based on pages
+      const limit = pages * 20; 
+      const reviews = await fetchGoogleReviewsRapid(hotel.googlePlaceId, limit);
 
-      for (let page = 0; page < pages; page++) {
-        const result = await fetchGoogleReviews(hotel.googlePlaceId, {
-          nextPageToken: nextPageToken ?? undefined,
-        });
-
-        // Update hotel image from place info if available
-        if (page === 0 && result.placeInfo) {
-          // placeInfo doesn't include thumbnail, skip
-        }
-
-        for (const review of result.reviews) {
-          const created = await upsertGoogleReview(hotel.id, review);
-          totalFetched++;
-          if (created) newReviews++;
-        }
-
-        nextPageToken = result.nextPageToken;
-        if (!nextPageToken) break;
+      for (const review of reviews) {
+        const created = await upsertGoogleReview(hotel.id, review);
+        totalFetched++;
+        if (created) newReviews++;
       }
     }
 
@@ -86,18 +73,16 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      for (let page = 0; page < pages; page++) {
-        const result = await fetchTripAdvisorReviews(locationId, {
-          offset: page * 10,
-        });
+      for (let page = 1; page <= pages; page++) {
+        const reviews = await fetchTripAdvisorReviewsRapid(locationId, page);
 
-        for (const review of result.reviews) {
+        for (const review of reviews) {
           const created = await upsertTripAdvisorReview(hotel.id, review);
           totalFetched++;
           if (created) newReviews++;
         }
-
-        if (!result.hasMore) break;
+        
+        if (reviews.length === 0) break;
       }
     }
 
@@ -123,9 +108,9 @@ export async function POST(req: NextRequest) {
 
 async function upsertGoogleReview(
   hotelId: string,
-  review: SerpApiGoogleReview
+  review: any
 ): Promise<boolean> {
-  const externalId = review.review_id ?? review.user?.name ?? null;
+  const externalId = review.review_id ?? review.author_name ?? null;
   if (!externalId) return false;
 
   const existing = await prisma.review.findUnique({
@@ -145,12 +130,12 @@ async function upsertGoogleReview(
       hotelId,
       source: "google",
       externalId,
-      authorName: review.user?.name ?? "Anonymous",
-      authorUrl: review.user?.link ?? null,
+      authorName: review.author_name ?? "Anonymous",
+      authorUrl: review.author_url ?? null,
       rating: review.rating ?? null,
-      text: review.snippet ?? "",
-      reviewDate: review.iso_date ? new Date(review.iso_date) : null,
-      reviewLink: review.link ?? null,
+      text: review.review_text ?? "",
+      reviewDate: review.review_datetime_utc ? new Date(review.review_datetime_utc) : null,
+      reviewLink: review.author_url ?? null, // Google API sometimes lacks direct review links
       language: null,
     },
   });
@@ -160,10 +145,9 @@ async function upsertGoogleReview(
 
 async function upsertTripAdvisorReview(
   hotelId: string,
-  review: SerpApiTripAdvisorReview
+  review: any
 ): Promise<boolean> {
-  const externalId =
-    review.review_id ?? review.user?.username ?? null;
+  const externalId = review.id ?? review.author?.username ?? null;
   if (!externalId) return false;
 
   const existing = await prisma.review.findUnique({
@@ -171,7 +155,7 @@ async function upsertTripAdvisorReview(
       hotelId_source_externalId: {
         hotelId,
         source: "tripadvisor",
-        externalId,
+        externalId: String(externalId),
       },
     },
   });
@@ -184,12 +168,12 @@ async function upsertTripAdvisorReview(
     data: {
       hotelId,
       source: "tripadvisor",
-      externalId,
-      authorName: review.user?.username ?? "Anonymous",
-      authorUrl: review.user?.link ?? null,
+      externalId: String(externalId),
+      authorName: review.author?.username ?? "Anonymous",
+      authorUrl: review.author?.url ?? null,
       rating: review.rating ?? null,
       text: fullText,
-      reviewDate: review.date ? new Date(review.date) : null,
+      reviewDate: review.publishedDate ? new Date(review.publishedDate) : null,
       reviewLink: review.url ?? null,
       language: null,
     },
