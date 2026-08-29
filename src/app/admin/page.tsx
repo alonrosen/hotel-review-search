@@ -477,9 +477,17 @@ export default function AdminPage() {
                               cursor: "pointer",
                               border: "1px solid var(--border)",
                             }}
-                            onClick={() =>
-                              setNewGoogleId(r.data_id || r.place_id || "")
-                            }
+                            onClick={() => {
+                              setNewGoogleId(r.data_id || r.place_id || "");
+                              if (r.title) {
+                                setNewName(r.title);
+                                const taMatch = lookupResults.tripadvisor.find(ta => ta.title && (ta.title.toLowerCase().includes(r.title!.toLowerCase()) || r.title!.toLowerCase().includes(ta.title.toLowerCase())));
+                                if (taMatch) {
+                                  if (taMatch.location_id) setNewTripAdvisorId(taMatch.location_id);
+                                  if (taMatch.link) setNewTripAdvisorUrl(taMatch.link);
+                                }
+                              }
+                            }}
                           >
                             {r.title}
                             <span
@@ -516,6 +524,13 @@ export default function AdminPage() {
                             onClick={() => {
                               if (r.location_id) setNewTripAdvisorId(r.location_id);
                               if (r.link) setNewTripAdvisorUrl(r.link);
+                              if (r.title) {
+                                setNewName(r.title);
+                                const gMatch = lookupResults.google.find(g => g.title && (g.title.toLowerCase().includes(r.title!.toLowerCase()) || r.title!.toLowerCase().includes(g.title.toLowerCase())));
+                                if (gMatch) {
+                                  setNewGoogleId(gMatch.data_id || gMatch.place_id || "");
+                                }
+                              }
                             }}
                           >
                             {r.title}
