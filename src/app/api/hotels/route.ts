@@ -7,10 +7,55 @@ import prisma from "@/lib/db";
 export async function GET() {
   const hotels = await prisma.hotel.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { reviews: true } } },
+    include: {
+      reviews: {
+        select: {
+          source: true,
+          reviewDate: true,
+        },
+      },
+    },
   });
 
-  return Response.json(hotels);
+  const formattedHotels = hotels.map((hotel) => {
+    const googleReviews = hotel.reviews.filter((r) => r.source === "google");
+    const taReviews = hotel.reviews.filter((r) => r.source === "tripadvisor");
+
+    const latestGoogle =
+      googleReviews.length > 0
+        ? googleReviews.reduce(
+            (latest, r) => (r.reviewDate && r.reviewDate > latest ? r.reviewDate : latest),
+            googleReviews[0].reviewDate || new Date(0)
+          )
+        : null;
+
+    const latestTA =
+      taReviews.length > 0
+        ? taReviews.reduce(
+            (latest, r) => (r.reviewDate && r.reviewDate > latest ? r.reviewDate : latest),
+            taReviews[0].reviewDate || new Date(0)
+          )
+        : null;
+
+    return {
+      id: hotel.id,
+      name: hotel.name,
+      googlePlaceId: hotel.googlePlaceId,
+      tripAdvisorId: hotel.tripAdvisorId,
+      tripAdvisorUrl: hotel.tripAdvisorUrl,
+      city: hotel.city,
+      country: hotel.country,
+      _count: { reviews: hotel.reviews.length },
+      stats: {
+        googleCount: googleReviews.length,
+        tripadvisorCount: taReviews.length,
+        latestGoogleReviewDate: latestGoogle,
+        latestTripadvisorReviewDate: latestTA,
+      },
+    };
+  });
+
+  return Response.json(formattedHotels);
 }
 
 export async function POST(req: NextRequest) {

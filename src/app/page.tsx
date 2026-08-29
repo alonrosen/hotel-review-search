@@ -13,6 +13,12 @@ interface Hotel {
   city: string | null;
   country: string | null;
   _count?: { reviews: number };
+  stats?: {
+    googleCount: number;
+    tripadvisorCount: number;
+    latestGoogleReviewDate: string | null;
+    latestTripadvisorReviewDate: string | null;
+  };
 }
 
 interface Review {
@@ -163,6 +169,25 @@ export default function Home() {
       return;
     }
     
+    // Compute default date based on stats
+    if (hotel.stats) {
+      const { googleCount, tripadvisorCount, latestGoogleReviewDate, latestTripadvisorReviewDate } = hotel.stats;
+      if (googleCount > 0 && tripadvisorCount > 0 && latestGoogleReviewDate && latestTripadvisorReviewDate) {
+        const d1 = new Date(latestGoogleReviewDate);
+        const d2 = new Date(latestTripadvisorReviewDate);
+        const minDate = d1 < d2 ? d1 : d2;
+        minDate.setDate(minDate.getDate() - 1); // reduce 1 day from that date
+        setAsOfDate(minDate.toISOString().split('T')[0]);
+      } else if (googleCount === 0 || tripadvisorCount === 0) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1); // 1 month ago
+        setAsOfDate(d.toISOString().split('T')[0]);
+      }
+    } else {
+      // Fallback
+      setAsOfDate("");
+    }
+
     setSelectedHotel(hotel);
     setResults(null);
     if (window.location.hash !== "#search") {

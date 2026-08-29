@@ -20,16 +20,16 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
     apifyBody.publishedAt = dateStr;
   }
 
-  if (hotel.googlePlaceId) {
-    // Check if the placeId is already a URL
-    let mapUrl = hotel.googlePlaceId;
-    if (!mapUrl.startsWith("http")) {
-      mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name)}&query_place_id=${hotel.googlePlaceId}`;
-    }
-    apifyBody.startUrls = [{ url: mapUrl }];
-  } else {
-    apifyBody.searchStringsArray = [hotel.name];
+  if (!hotel.googlePlaceId) {
+    throw new Error(`Hotel ${hotel.name} missing googlePlaceId. Text search is disabled.`);
   }
+
+  // Check if the placeId is already a URL
+  let mapUrl = hotel.googlePlaceId;
+  if (!mapUrl.startsWith("http")) {
+    mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name)}&query_place_id=${hotel.googlePlaceId}`;
+  }
+  apifyBody.startUrls = [{ url: mapUrl }];
 
   const url = `https://api.apify.com/v2/acts/${APIFY_GOOGLE_ACTOR_ID}/run-sync-get-dataset-items?token=${APIFY_API_TOKEN}`;
   
