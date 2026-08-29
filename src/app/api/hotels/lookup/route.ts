@@ -1,7 +1,8 @@
 /* POST /api/hotels/lookup — search for Place ID and TripAdvisor URL via RapidAPI */
 
 import { NextRequest } from "next/server";
-import { searchGooglePlaceIdRapid, searchTripAdvisorRapid } from "@/lib/rapidapi";
+import { searchTripAdvisorRapid } from "@/lib/rapidapi";
+import { searchGooglePlaceIdApify } from "@/lib/apify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,15 +18,15 @@ export async function POST(req: NextRequest) {
     const query = [name, city, country].filter(Boolean).join(", ");
 
     const [googleResults, taResults] = await Promise.allSettled([
-      searchGooglePlaceIdRapid(query),
+      searchGooglePlaceIdApify(query),
       searchTripAdvisorRapid(query),
     ]);
 
     const googleMapped = googleResults.status === "fulfilled" 
       ? googleResults.value.map((res: any) => ({
-          place_id: res.business_id || res.place_id,
-          title: res.name || res.title,
-          address: res.full_address || res.address,
+          place_id: res.place_id,
+          title: res.title,
+          address: res.address,
         }))
       : [];
 

@@ -75,10 +75,10 @@ export async function POST(req: NextRequest) {
   // Automatically lookup Google Place ID if not provided
   if (!googlePlaceId) {
     try {
-      const { searchGooglePlaceIdRapid } = await import("@/lib/rapidapi");
-      const googleResults = await searchGooglePlaceIdRapid(name + (city ? " " + city : ""));
+      const { searchGooglePlaceIdApify } = await import("@/lib/apify");
+      const googleResults = await searchGooglePlaceIdApify(name + (city ? " " + city : ""));
       if (googleResults && googleResults.length > 0) {
-        googlePlaceId = googleResults[0].business_id || googleResults[0].place_id;
+        googlePlaceId = googleResults[0].place_id;
       }
     } catch (error) {
       console.error("Failed to auto-lookup Google ID:", error);
@@ -92,7 +92,6 @@ export async function POST(req: NextRequest) {
       const results = await searchTripAdvisorRapid(name + (city ? " " + city : ""));
       if (results && results.length > 0) {
         if (!tripAdvisorId) tripAdvisorId = results[0].location_id;
-        if (!tripAdvisorUrl && results[0].link) tripAdvisorUrl = results[0].link;
         if (!tripAdvisorUrl && results[0].location_id) tripAdvisorUrl = `https://www.tripadvisor.com/Hotel_Review-d${results[0].location_id}`;
       }
     } catch (error) {

@@ -62,6 +62,37 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
   }));
 }
 
+export async function searchGooglePlaceIdApify(query: string) {
+  if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
+  
+  const url = `https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items?token=${APIFY_API_TOKEN}`;
+  
+  console.log(`[Apify] Searching Google Places for: ${query}`);
+  
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      searchStringsArray: [query],
+      maxCrawledPlacesPerSearch: 3,
+      language: "en"
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Apify Google Places lookup failed: ${errorText}`);
+  }
+
+  const data = await res.json();
+  
+  return data.map((item: any) => ({
+    place_id: item.placeId,
+    title: item.title,
+    address: item.address,
+  }));
+}
+
 export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: number = 1000, sinceDate?: Date) {
   if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
   if (!hotel.tripAdvisorUrl) throw new Error(`Hotel ${hotel.name} missing tripAdvisorUrl`);
