@@ -63,6 +63,26 @@ export default function Home() {
   const searchSectionRef = useRef<HTMLDivElement>(null);
   const resultsSectionRef = useRef<HTMLDivElement>(null);
 
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const onPopState = () => {
+      const hash = window.location.hash;
+      if (hash === "#search") {
+        setResults(null);
+        setTimeout(() => {
+          searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
+      } else if (hash === "" || hash === "#") {
+        setSelectedHotel(null);
+        setResults(null);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   // Fetch hotels on mount
   useEffect(() => {
     fetch("/api/hotels")
@@ -79,7 +99,7 @@ export default function Home() {
 
   // Auto-scroll to search section when hotel is selected
   useEffect(() => {
-    if (selectedHotel && searchSectionRef.current) {
+    if (selectedHotel && searchSectionRef.current && window.location.hash !== "#results") {
       setTimeout(() => {
         searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
@@ -121,6 +141,10 @@ export default function Home() {
         const data: SearchResponse = await res.json();
         setResults(data);
         setPage(targetPage);
+        
+        if (window.location.hash !== "#results") {
+          window.history.pushState({ step: "results" }, "", "#results");
+        }
       } catch {
         setError("Search failed. Please try again.");
       } finally {
@@ -129,6 +153,22 @@ export default function Home() {
     },
     [selectedHotel, query, source, asOfDate]
   );
+
+  const handleSelectHotel = useCallback((hotel: Hotel) => {
+    if (selectedHotel?.id === hotel.id) {
+      searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (window.location.hash !== "#search" && window.location.hash !== "#results") {
+        window.history.pushState({ step: "search" }, "", "#search");
+      }
+      return;
+    }
+    
+    setSelectedHotel(hotel);
+    setResults(null);
+    if (window.location.hash !== "#search") {
+      window.history.pushState({ step: "search" }, "", "#search");
+    }
+  }, [selectedHotel]);
 
   return (
     <>
@@ -194,7 +234,7 @@ export default function Home() {
                   className={`card hotel-card ${
                     selectedHotel?.id === hotel.id ? "selected" : ""
                   }`}
-                  onClick={() => setSelectedHotel(hotel)}
+                  onClick={() => handleSelectHotel(hotel)}
                 >
                   <div className="hotel-name">{hotel.name}</div>
                   <div className="hotel-location">
