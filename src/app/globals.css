@@ -835,7 +835,7 @@ a:hover {
   
   .section-wrapper {
     min-height: calc(100vh - 80px);
-    justify-content: center;
+    justify-content: flex-start;
   }
   
   .results-wrapper {

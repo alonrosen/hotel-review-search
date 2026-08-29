@@ -37,6 +37,7 @@ export default function AdminPage() {
 
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [stats, setStats] = useState<ReviewStats[]>([]);
+  const [settings, setSettings] = useState<{ provider_google?: string; provider_tripadvisor?: string }>({});
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
 
@@ -69,12 +70,14 @@ export default function AdminPage() {
 
   async function loadData() {
     try {
-      const [hotelsRes, statsRes] = await Promise.all([
+      const [hotelsRes, statsRes, settingsRes] = await Promise.all([
         fetch("/api/hotels"),
         fetch("/api/reviews/stats"),
+        fetch("/api/settings", { headers: authHeaders() }),
       ]);
       setHotels(await hotelsRes.json());
       setStats(await statsRes.json());
+      setSettings(await settingsRes.json());
     } catch {
       showToast("Failed to load data", "error");
     }
@@ -171,6 +174,22 @@ export default function AdminPage() {
       showToast("Lookup failed", "error");
     } finally {
       setLookupLoading(false);
+    }
+  }
+
+  /* ── Settings ────────────────────────────────────────────── */
+  async function handleUpdateSetting(key: string, value: string) {
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ key, value }),
+      });
+      if (!res.ok) throw new Error();
+      showToast("Settings updated", "success");
+      setSettings((s) => ({ ...s, [key]: value }));
+    } catch {
+      showToast("Failed to update setting", "error");
     }
   }
 
@@ -316,8 +335,36 @@ export default function AdminPage() {
         </div>
 
         <div className="admin-layout">
-          {/* Left Column — Add Hotel */}
+          {/* Left Column */}
           <div className="admin-section">
+            
+            {/* Global Settings */}
+            <div className="section-title">Global Settings</div>
+            <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
+              <div className="form-group">
+                <label>Google Maps Provider</label>
+                <select
+                  className="select"
+                  value={settings.provider_google || "rapidapi"}
+                  onChange={(e) => handleUpdateSetting("provider_google", e.target.value)}
+                >
+                  <option value="rapidapi">RapidAPI (Backup)</option>
+                  <option value="apify">Apify</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>TripAdvisor Provider</label>
+                <select
+                  className="select"
+                  value={settings.provider_tripadvisor || "rapidapi"}
+                  onChange={(e) => handleUpdateSetting("provider_tripadvisor", e.target.value)}
+                >
+                  <option value="rapidapi">RapidAPI (Backup)</option>
+                  <option value="apify">Apify</option>
+                </select>
+              </div>
+            </div>
+
             <div className="section-title">Add Hotel</div>
 
             <form onSubmit={handleAddHotel}>

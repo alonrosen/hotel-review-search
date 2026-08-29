@@ -3,6 +3,7 @@ import {
   fetchGoogleReviewsRapid,
   fetchTripAdvisorReviewsRapid,
 } from "@/lib/rapidapi";
+import { fetchApifyGoogleReviews, fetchApifyTripAdvisorReviews } from "@/lib/apify";
 
 export async function upsertGoogleReview(
   hotelId: string,
@@ -129,6 +130,44 @@ export async function upsertTripAdvisorReview(
   return result.fetchedAt.getTime() >= Date.now() - 5000;
 }
 
+export async function upsertFormattedReview(
+  hotelId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  review: any
+): Promise<boolean> {
+  const result = await prisma.review.upsert({
+    where: {
+      hotelId_source_externalId: {
+        hotelId,
+        source: review.source,
+        externalId: review.externalId,
+      },
+    },
+    create: {
+      hotelId,
+      source: review.source,
+      externalId: review.externalId,
+      authorName: review.authorName,
+      authorUrl: review.authorUrl,
+      rating: review.rating,
+      text: review.text,
+      reviewDate: review.reviewDate ? new Date(review.reviewDate) : null,
+      reviewLink: review.reviewLink,
+      language: review.language,
+    },
+    update: {
+      text: review.text,
+      rating: review.rating,
+      reviewDate: review.reviewDate ? new Date(review.reviewDate) : null,
+      reviewLink: review.reviewLink,
+      language: review.language,
+      fetchedAt: new Date(),
+    },
+  });
+
+  return result.fetchedAt.getTime() >= Date.now() - 5000;
+}
+
 export function extractTripAdvisorLocationId(url: string): string | null {
   const match = url.match(/-d(\d+)-/i) || url.match(/d(\d+)/i);
   return match ? match[1] : null;
@@ -138,36 +177,59 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
   const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
   if (!hotel) throw new Error("Hotel not found");
 
+  const googleProvider = (await prisma.setting.findUnique({ where: { key: "provider_google" } }))?.value || "rapidapi";
+  const taProvider = (await prisma.setting.findUnique({ where: { key: "provider_tripadvisor" } }))?.value || "rapidapi";
+
   let totalFetched = 0;
   let newReviews = 0;
 
   if (source === "google" || source === "both") {
-    if (hotel.googlePlaceId) {
-      const limit = pages * 20;
-      const reviews = await fetchGoogleReviewsRapid(hotel.googlePlaceId, limit);
-      for (const review of reviews) {
-        const created = await upsertGoogleReview(hotel.id, review);
-        totalFetched++;
-        if (created) newReviews++;
+    if (hotel.googlePlaceId || (googleProvider === "apify" && hotel.name)) {
+      if (googleProvider === "apify") {
+        const reviews = await fetchApifyGoogleReviews(hotel, 1000); // Fetch up to 1000 to prevent gaps
+        for (const review of reviews) {
+          const created = await upsertFormattedReview(hotel.id, review);
+          totalFetched++;
+          if (created) newReviews++;
+        }
+      } else {
+        const limit = pages * 20;
+        const reviews = await fetchGoogleReviewsRapid(hotel.googlePlaceId!, limit);
+        for (const review of reviews) {
+          const created = await upsertGoogleReview(hotel.id, review);
+          totalFetched++;
+          if (created) newReviews++;
+        }
       }
     }
   }
 
   if (source === "tripadvisor" || source === "both") {
-    const locationId =
-      hotel.tripAdvisorId ??
-      (hotel.tripAdvisorUrl
-        ? extractTripAdvisorLocationId(hotel.tripAdvisorUrl)
-        : null);
+    if (taProvider === "apify") {
+      if (hotel.tripAdvisorUrl) {
+        const reviews = await fetchApifyTripAdvisorReviews(hotel, 1000); // Fetch up to 1000 to prevent gaps
+        for (const review of reviews) {
+          const created = await upsertFormattedReview(hotel.id, review);
+          totalFetched++;
+          if (created) newReviews++;
+        }
+      }
+    } else {
+      const locationId =
+        hotel.tripAdvisorId ??
+        (hotel.tripAdvisorUrl
+          ? extractTripAdvisorLocationId(hotel.tripAdvisorUrl)
+          : null);
 
-    if (locationId) {
-      // The TA RapidAPI endpoint does not support offset/pagination for reviews.
-      // It only returns the most recent ~20-50 reviews.
-      const reviews = await fetchTripAdvisorReviewsRapid(locationId, 1);
-      for (const review of reviews) {
-        const created = await upsertTripAdvisorReview(hotel.id, review);
-        totalFetched++;
-        if (created) newReviews++;
+      if (locationId) {
+        // The TA RapidAPI endpoint does not support offset/pagination for reviews.
+        // It only returns the most recent ~20-50 reviews.
+        const reviews = await fetchTripAdvisorReviewsRapid(locationId, 1);
+        for (const review of reviews) {
+          const created = await upsertTripAdvisorReview(hotel.id, review);
+          totalFetched++;
+          if (created) newReviews++;
+        }
       }
     }
   }

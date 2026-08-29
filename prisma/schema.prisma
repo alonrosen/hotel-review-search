@@ -53,3 +53,10 @@ model SearchLog {
   @@index([query, hotelId])
   @@map("search_logs")
 }
+
+model Setting {
+  key   String @id
+  value String
+
+  @@map("settings")
+}
