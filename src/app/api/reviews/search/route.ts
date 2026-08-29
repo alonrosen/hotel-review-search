@@ -5,11 +5,11 @@ import prisma from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { query, hotelId, source, asOfDate } = body;
+  const { query, hotelId, source, asOfDate, page } = body;
 
-  if (!query || !hotelId) {
+  if (!hotelId) {
     return Response.json(
-      { error: "query and hotelId are required" },
+      { error: "hotelId is required" },
       { status: 400 }
     );
   }
@@ -19,28 +19,17 @@ export async function POST(req: NextRequest) {
 
   if (asOfDate) {
     effectiveAsOfDate = new Date(asOfDate);
-  } else {
-    // Look up the last time this query returned results for this hotel
-    const lastLog = await prisma.searchLog.findFirst({
-      where: {
-        query: { equals: query, mode: "insensitive" },
-        hotelId,
-        resultCount: { gt: 0 },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (lastLog?.lastMatchDate) {
-      effectiveAsOfDate = lastLog.lastMatchDate;
-    }
   }
 
   // Build the where clause
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
     hotelId,
-    text: { contains: query, mode: "insensitive" },
   };
+
+  if (query) {
+    where.text = { contains: query, mode: "insensitive" };
+  }
 
   if (source && source !== "both") {
     where.source = source;
@@ -50,13 +39,33 @@ export async function POST(req: NextRequest) {
     where.reviewDate = { gte: effectiveAsOfDate };
   }
 
+  // Pagination logic
+  const pageNumber = parseInt(page) || 1;
+  const take = 20;
+  const skip = (pageNumber - 1) * take;
+
+  // On page 1, fetch latest reviews live from API to ensure we have fresh data
+  if (pageNumber === 1) {
+    try {
+      const { fetchAndUpsertReviews } = await import("@/lib/reviews");
+      await fetchAndUpsertReviews(hotelId, source || "both", 1);
+    } catch (err) {
+      console.error("Failed to sync live reviews on search:", err);
+      // We don't block the search if live fetch fails, just fall back to cache
+    }
+  }
+
   // Execute search
-  const reviews = await prisma.review.findMany({
-    where,
-    orderBy: { reviewDate: "desc" },
-    include: { hotel: true },
-    take: 100,
-  });
+  const [reviews, totalCount] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      orderBy: { reviewDate: "desc" },
+      include: { hotel: true },
+      skip,
+      take,
+    }),
+    prisma.review.count({ where }),
+  ]);
 
   // Highlight matching text
   const results = reviews.map((review, index) => ({
@@ -76,21 +85,25 @@ export async function POST(req: NextRequest) {
     null as Date | null
   );
 
-  // Log the search
-  await prisma.searchLog.create({
-    data: {
-      query,
-      hotelId,
-      asOfDate: effectiveAsOfDate,
-      resultCount: results.length,
-      lastMatchDate: results.length > 0 ? latestReviewDate : null,
-    },
-  });
+  // Log the search (only if query is provided)
+  if (query) {
+    await prisma.searchLog.create({
+      data: {
+        query,
+        hotelId,
+        asOfDate: effectiveAsOfDate,
+        resultCount: totalCount,
+        lastMatchDate: totalCount > 0 ? latestReviewDate : null,
+      },
+    });
+  }
 
   return Response.json({
     results,
-    totalCount: results.length,
-    query,
+    totalCount,
+    totalPages: Math.ceil(totalCount / take),
+    currentPage: pageNumber,
+    query: query || "",
     asOfDate: effectiveAsOfDate?.toISOString() ?? null,
     searchedAt: new Date().toISOString(),
   });

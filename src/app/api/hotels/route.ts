@@ -20,11 +20,37 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, googlePlaceId, tripAdvisorId, tripAdvisorUrl, city, country } =
+  let { name, googlePlaceId, tripAdvisorId, tripAdvisorUrl, city, country } =
     body;
 
   if (!name) {
     return Response.json({ error: "Hotel name is required" }, { status: 400 });
+  }
+
+  // Automatically lookup Google Place ID if not provided
+  if (!googlePlaceId) {
+    try {
+      const { searchGooglePlaceIdRapid } = await import("@/lib/rapidapi");
+      const googleResults = await searchGooglePlaceIdRapid(name + (city ? " " + city : ""));
+      if (googleResults && googleResults.length > 0) {
+        googlePlaceId = googleResults[0].business_id || googleResults[0].place_id;
+      }
+    } catch (error) {
+      console.error("Failed to auto-lookup Google ID:", error);
+    }
+  }
+
+  // Automatically lookup TripAdvisor contentId if not provided
+  if (!tripAdvisorId) {
+    try {
+      const { searchTripAdvisorRapid } = await import("@/lib/rapidapi");
+      const results = await searchTripAdvisorRapid(name + (city ? " " + city : ""));
+      if (results && results.length > 0) {
+        tripAdvisorId = results[0].location_id;
+      }
+    } catch (error) {
+      console.error("Failed to auto-lookup TripAdvisor ID:", error);
+    }
   }
 
   const hotel = await prisma.hotel.create({
@@ -40,3 +66,4 @@ export async function POST(req: NextRequest) {
 
   return Response.json(hotel, { status: 201 });
 }
+

@@ -45,7 +45,7 @@ export default function AdminPage() {
   const [newCity, setNewCity] = useState("");
   const [newCountry, setNewCountry] = useState("");
   const [newGoogleId, setNewGoogleId] = useState("");
-  const [newTripAdvisorUrl, setNewTripAdvisorUrl] = useState("");
+  const [newTripAdvisorId, setNewTripAdvisorId] = useState("");
   const [lookupResults, setLookupResults] = useState<{
     google: Array<{ title?: string; place_id?: string; data_id?: string; address?: string }>;
     tripadvisor: Array<{ title?: string; link?: string; location_id?: string }>;
@@ -187,7 +187,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           name: newName,
           googlePlaceId: newGoogleId || undefined,
-          tripAdvisorUrl: newTripAdvisorUrl || undefined,
+          tripAdvisorId: newTripAdvisorId || undefined,
           city: newCity || undefined,
           country: newCountry || undefined,
         }),
@@ -203,7 +203,7 @@ export default function AdminPage() {
       setNewCity("");
       setNewCountry("");
       setNewGoogleId("");
-      setNewTripAdvisorUrl("");
+      setNewTripAdvisorId("");
       setLookupResults(null);
       loadData();
     } catch (err) {
@@ -239,7 +239,7 @@ export default function AdminPage() {
       const res = await fetch("/api/reviews/fetch", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ hotelId, source, pages: 3 }),
+        body: JSON.stringify({ hotelId, source, pages: 10 }),
       });
 
       if (!res.ok) {
@@ -430,7 +430,7 @@ export default function AdminPage() {
                               border: "1px solid var(--border)",
                             }}
                             onClick={() =>
-                              setNewTripAdvisorUrl(r.link || "")
+                              setNewTripAdvisorId(r.location_id || r.link || "")
                             }
                           >
                             {r.title}
@@ -441,7 +441,7 @@ export default function AdminPage() {
                                 fontSize: 12,
                               }}
                             >
-                              {r.link || "No URL"}
+                              {r.location_id ? `ID: ${r.location_id}` : (r.link || "No ID")}
                             </span>
                           </div>
                         ))}
@@ -461,12 +461,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>TripAdvisor URL</label>
+                  <label>TripAdvisor ID (contentId)</label>
                   <input
                     className="input"
-                    placeholder="https://www.tripadvisor.com/Hotel_Review-..."
-                    value={newTripAdvisorUrl}
-                    onChange={(e) => setNewTripAdvisorUrl(e.target.value)}
+                    placeholder="Auto-filled or paste manually"
+                    value={newTripAdvisorId}
+                    onChange={(e) => setNewTripAdvisorId(e.target.value)}
                   />
                 </div>
 

@@ -26,7 +26,7 @@ export async function searchGooglePlaceIdRapid(query: string) {
 export async function fetchGoogleReviewsRapid(placeId: string, limit: number = 20) {
   if (!RAPIDAPI_KEY) throw new Error("Missing RAPIDAPI_KEY");
 
-  const url = `https://${GOOGLE_API_HOST}/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=${limit}&sort_by=most_relevant&region=us&language=en`;
+  const url = `https://${GOOGLE_API_HOST}/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=${limit}&sort_by=newest&region=us&language=en`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -42,15 +42,14 @@ export async function fetchGoogleReviewsRapid(placeId: string, limit: number = 2
 
 
 /**
- * TRIPADVISOR (Tripadvisor16 by belchiorarkad)
- * https://rapidapi.com/belchiorarkad-uk018n4_rQ/api/tripadvisor16
+ * TRIPADVISOR (Tripadvisor-com1)
  */
-const TA_API_HOST = "tripadvisor16.p.rapidapi.com";
+const TA_API_HOST = "tripadvisor-com1.p.rapidapi.com";
 
 export async function searchTripAdvisorRapid(query: string) {
   if (!RAPIDAPI_KEY) throw new Error("Missing RAPIDAPI_KEY");
 
-  const url = `https://${TA_API_HOST}/api/v1/hotels/searchLocation?query=${encodeURIComponent(query)}`;
+  const url = `https://${TA_API_HOST}/auto-complete?query=${encodeURIComponent(query)}`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -59,15 +58,39 @@ export async function searchTripAdvisorRapid(query: string) {
     },
   });
 
-  if (!res.ok) throw new Error("RapidAPI TripAdvisor Search failed");
+  if (!res.ok) throw new Error("RapidAPI TripAdvisor Auto-complete failed");
   const data = await res.json();
-  return data.data || [];
+  const results = data?.data?.results || data?.data || [];
+  
+  if (!Array.isArray(results)) return [];
+  
+  return results
+    .filter((r: any) => r?.trackingItems?.placeType === "ACCOMMODATION")
+    .map((r: any) => {
+      const id = r?.trackingItems?.locationId || r?.geoId;
+      
+      // Remove HTML tags like <b> from the heading
+      let title = r?.heading?.htmlString || r?.trackingItems?.text || "Unknown Hotel";
+      title = title.replace(/<\/?[^>]+(>|$)/g, "");
+
+      const address = r?.secondaryTextLineOne?.string || "";
+      if (address) {
+        title += ` (${address})`;
+      }
+
+      return {
+        title,
+        location_id: id ? String(id) : null
+      };
+    })
+    .filter((h: any) => h.location_id);
 }
 
-export async function fetchTripAdvisorReviewsRapid(locationId: string, page: number = 1) {
+export async function fetchTripAdvisorReviewsRapid(contentId: string, page: number = 1) {
   if (!RAPIDAPI_KEY) throw new Error("Missing RAPIDAPI_KEY");
 
-  const url = `https://${TA_API_HOST}/api/v1/hotels/getReviews?id=${encodeURIComponent(locationId)}&page=${page}`;
+  const offset = (page - 1) * 20;
+  const url = `https://${TA_API_HOST}/hotels/reviews?contentId=${encodeURIComponent(contentId)}${offset > 0 ? `&offset=${offset}` : ""}`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -78,5 +101,26 @@ export async function fetchTripAdvisorReviewsRapid(locationId: string, page: num
 
   if (!res.ok) throw new Error("RapidAPI TripAdvisor Reviews failed");
   const data = await res.json();
-  return data.data?.data || [];
+  
+  const reviews = [];
+  
+  if (data?.data?.sections) {
+    for (const section of data.data.sections) {
+      if (section.__typename === "AppPresentation_UserReviewSection") {
+        reviews.push({
+          id: section.helpfulVote?.helpfulVoteAction?.objectId || Math.random().toString(36).substring(7),
+          title: section.htmlTitle?.htmlString || "",
+          text: section.htmlText?.htmlString || "",
+          rating: section.bubbleRating?.rating || 0,
+          author: {
+            username: section.author?.username || section.userProfile?.displayName || "Anonymous"
+          },
+          publishedDate: section.publishedDate?.string || "",
+          url: section.reviewActions?.find((a: any) => a.__typename === "AppPresentation_ShareLinkAction")?.link?.route?.url || ""
+        });
+      }
+    }
+  }
+  
+  return reviews;
 }

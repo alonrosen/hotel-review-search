@@ -37,6 +37,8 @@ interface SearchResult {
 interface SearchResponse {
   results: SearchResult[];
   totalCount: number;
+  totalPages: number;
+  currentPage: number;
   query: string;
   asOfDate: string | null;
   searchedAt: string;
@@ -53,6 +55,7 @@ export default function Home() {
   );
   const [asOfDate, setAsOfDate] = useState("");
   const [results, setResults] = useState<SearchResponse | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -72,9 +75,9 @@ export default function Home() {
   }, []);
 
   const handleSearch = useCallback(
-    async (e?: FormEvent) => {
+    async (e?: FormEvent, targetPage: number = 1) => {
       if (e) e.preventDefault();
-      if (!selectedHotel || !query.trim()) return;
+      if (!selectedHotel) return;
 
       setLoading(true);
       setError("");
@@ -88,6 +91,7 @@ export default function Home() {
             hotelId: selectedHotel.id,
             source: source === "both" ? undefined : source,
             asOfDate: asOfDate || undefined,
+            page: targetPage,
           }),
         });
 
@@ -95,6 +99,7 @@ export default function Home() {
 
         const data: SearchResponse = await res.json();
         setResults(data);
+        setPage(targetPage);
       } catch {
         setError("Search failed. Please try again.");
       } finally {
@@ -219,7 +224,7 @@ export default function Home() {
                 <button
                   type="submit"
                   className="btn btn-primary btn-lg"
-                  disabled={!query.trim() || loading}
+                  disabled={loading}
                 >
                   {loading ? <span className="spinner" /> : "Search"}
                 </button>
@@ -288,9 +293,8 @@ export default function Home() {
           <div>
             <div className="results-header">
               <div className="results-count">
-                Found <strong>{results.totalCount}</strong> matching review
-                {results.totalCount !== 1 ? "s" : ""} for &ldquo;
-                {results.query}&rdquo;
+                Found <strong>{results.totalCount}</strong> matching review{results.totalCount !== 1 ? "s" : ""}
+                {results.query && <> for &ldquo;{results.query}&rdquo;</>}
               </div>
 
               {results.asOfDate && (
@@ -315,6 +319,37 @@ export default function Home() {
                 {results.results.map((result) => (
                   <ReviewCard key={result.review.id} result={result} />
                 ))}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {results && results.totalPages > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 16,
+                  marginTop: 24,
+                }}
+              >
+                <button
+                  className="btn btn-secondary"
+                  disabled={results.currentPage === 1 || loading}
+                  onClick={() => handleSearch(undefined, results.currentPage - 1)}
+                >
+                  &larr; Prev
+                </button>
+                <span style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+                  Page {results.currentPage} of {results.totalPages}
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  disabled={results.currentPage === results.totalPages || loading}
+                  onClick={() => handleSearch(undefined, results.currentPage + 1)}
+                >
+                  Next &rarr;
+                </button>
               </div>
             )}
           </div>
