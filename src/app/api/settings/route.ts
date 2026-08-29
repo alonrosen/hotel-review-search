@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { headers } from "next/headers";
 
-function authenticate() {
-  const adminSecret = headers().get("x-admin-secret");
+async function authenticate() {
+  const reqHeaders = await headers();
+  const adminSecret = reqHeaders.get("x-admin-secret");
   return adminSecret === process.env.ADMIN_SECRET;
 }
 
 export async function GET() {
-  if (!authenticate()) {
+  if (!(await authenticate())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -26,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (!authenticate()) {
+  if (!(await authenticate())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
