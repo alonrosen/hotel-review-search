@@ -8,11 +8,17 @@ const APIFY_GOOGLE_ACTOR_ID = "Xb8osYTtOjlsgI6k9";
 // TripAdvisor Reviews Scraper Actor
 const APIFY_TRIPADVISOR_ACTOR_ID = "LPshQCJhLqVNIdMrf";
 
-export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number = 1000) {
+export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number = 1000, sinceDate?: Date) {
   if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
 
   // We rely on the exact hotel name. Alternatively, if we know the placeId, we could use that.
   let apifyBody: any = { maxReviews, reviewsSort: "newest" };
+  
+  if (sinceDate) {
+    const dateStr = sinceDate.toISOString().split('T')[0];
+    apifyBody.reviewsStartDate = dateStr;
+    apifyBody.publishedAt = dateStr;
+  }
 
   if (hotel.googlePlaceId) {
     // Check if the placeId is already a URL
@@ -56,7 +62,7 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
   }));
 }
 
-export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: number = 1000) {
+export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: number = 1000, sinceDate?: Date) {
   if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
   if (!hotel.tripAdvisorUrl) throw new Error(`Hotel ${hotel.name} missing tripAdvisorUrl`);
 
@@ -64,13 +70,21 @@ export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: num
   
   console.log(`[Apify TripAdvisor] Fetching max ${maxReviews} for ${hotel.name}`);
 
+  let apifyBody: any = {
+    startUrls: [{ url: hotel.tripAdvisorUrl }],
+    maxItems: maxReviews,
+  };
+  
+  if (sinceDate) {
+    const dateStr = sinceDate.toISOString().split('T')[0];
+    apifyBody.reviewsStartDate = dateStr;
+    apifyBody.publishedAt = dateStr;
+  }
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      startUrls: [{ url: hotel.tripAdvisorUrl }],
-      maxItems: maxReviews,
-    }),
+    body: JSON.stringify(apifyBody),
   });
 
   if (!res.ok) {

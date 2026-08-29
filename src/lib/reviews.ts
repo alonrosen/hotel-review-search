@@ -183,10 +183,35 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
   let totalFetched = 0;
   let newReviews = 0;
 
+  // Determine sinceDate to limit Apify fetches
+  const latestGoogle = await prisma.review.findFirst({
+    where: { hotelId, source: "google" },
+    orderBy: { reviewDate: "desc" }
+  });
+  let googleSinceDate = new Date();
+  if (latestGoogle && latestGoogle.reviewDate) {
+    googleSinceDate = new Date(latestGoogle.reviewDate);
+    googleSinceDate.setDate(googleSinceDate.getDate() - 1);
+  } else {
+    googleSinceDate.setMonth(googleSinceDate.getMonth() - 1); // limit initial fill to 1 month
+  }
+
+  const latestTA = await prisma.review.findFirst({
+    where: { hotelId, source: "tripadvisor" },
+    orderBy: { reviewDate: "desc" }
+  });
+  let taSinceDate = new Date();
+  if (latestTA && latestTA.reviewDate) {
+    taSinceDate = new Date(latestTA.reviewDate);
+    taSinceDate.setDate(taSinceDate.getDate() - 1);
+  } else {
+    taSinceDate.setMonth(taSinceDate.getMonth() - 1); // limit initial fill to 1 month
+  }
+
   if (source === "google" || source === "both") {
     if (hotel.googlePlaceId || (googleProvider === "apify" && hotel.name)) {
       if (googleProvider === "apify") {
-        const reviews = await fetchApifyGoogleReviews(hotel, 1000); // Fetch up to 1000 to prevent gaps
+        const reviews = await fetchApifyGoogleReviews(hotel, 1000, googleSinceDate);
         for (const review of reviews) {
           const created = await upsertFormattedReview(hotel.id, review);
           totalFetched++;
@@ -207,7 +232,7 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
   if (source === "tripadvisor" || source === "both") {
     if (taProvider === "apify") {
       if (hotel.tripAdvisorUrl) {
-        const reviews = await fetchApifyTripAdvisorReviews(hotel, 1000); // Fetch up to 1000 to prevent gaps
+        const reviews = await fetchApifyTripAdvisorReviews(hotel, 1000, taSinceDate);
         for (const review of reviews) {
           const created = await upsertFormattedReview(hotel.id, review);
           totalFetched++;
