@@ -479,6 +479,8 @@ export default function AdminPage() {
                             }}
                             onClick={() => {
                               setNewGoogleId(r.data_id || r.place_id || "");
+                              if (r.city) setNewCity(r.city);
+                              if (r.country) setNewCountry(r.country);
                               if (r.title) {
                                 setNewName(r.title);
                                 const taMatch = lookupResults.tripadvisor.find(ta => ta.title && (ta.title.toLowerCase().includes(r.title!.toLowerCase()) || r.title!.toLowerCase().includes(ta.title.toLowerCase())));

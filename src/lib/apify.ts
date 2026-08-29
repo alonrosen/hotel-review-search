@@ -90,6 +90,8 @@ export async function searchGooglePlaceIdApify(query: string) {
     place_id: item.placeId,
     title: item.title,
     address: item.address,
+    city: item.city,
+    countryCode: item.countryCode,
   }));
 }
 

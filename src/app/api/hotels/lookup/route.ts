@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
           place_id: res.place_id,
           title: res.title,
           address: res.address,
+          city: res.city,
+          country: res.countryCode,
         }))
       : [];
 
