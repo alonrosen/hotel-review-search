@@ -41,7 +41,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
 
-  // Add hotel form
+  // Hotel form state
+  const [editingHotelId, setEditingHotelId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newCity, setNewCity] = useState("");
   const [newCountry, setNewCountry] = useState("");
@@ -170,7 +171,18 @@ export default function AdminPage() {
           country: newCountry,
         }),
       });
-      setLookupResults(await res.json());
+      const results = await res.json();
+      setLookupResults(results);
+
+      // Auto-populate the first results
+      if (results.google && results.google.length > 0) {
+        setNewGoogleId(results.google[0].data_id || results.google[0].place_id || "");
+      }
+      if (results.tripadvisor && results.tripadvisor.length > 0) {
+        if (results.tripadvisor[0].location_id) setNewTripAdvisorId(results.tripadvisor[0].location_id);
+        if (results.tripadvisor[0].link) setNewTripAdvisorUrl(results.tripadvisor[0].link);
+      }
+
     } catch {
       showToast("Lookup failed", "error");
     } finally {
@@ -194,15 +206,18 @@ export default function AdminPage() {
     }
   }
 
-  /* ── Add Hotel ───────────────────────────────────────────── */
-  async function handleAddHotel(e: FormEvent) {
+  /* ── Save Hotel (Add or Edit) ────────────────────────────── */
+  async function handleSaveHotel(e: FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
 
     setLoading(true);
     try {
-      const res = await fetch("/api/hotels", {
-        method: "POST",
+      const url = editingHotelId ? `/api/hotels/${editingHotelId}` : "/api/hotels";
+      const method = editingHotelId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: authHeaders(),
         body: JSON.stringify({
           name: newName,
@@ -216,23 +231,40 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to add hotel");
+        throw new Error(data.error || "Failed to save hotel");
       }
 
-      showToast(`Added "${newName}"`, "success");
-      setNewName("");
-      setNewCity("");
-      setNewCountry("");
-      setNewGoogleId("");
-      setNewTripAdvisorId("");
-      setNewTripAdvisorUrl("");
-      setLookupResults(null);
+      showToast(editingHotelId ? `Updated "${newName}"` : `Added "${newName}"`, "success");
+      cancelEdit();
       loadData();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to add hotel", "error");
+      showToast(err instanceof Error ? err.message : "Failed to save hotel", "error");
     } finally {
       setLoading(false);
     }
+  }
+
+  function startEdit(hotel: Hotel) {
+    setEditingHotelId(hotel.id);
+    setNewName(hotel.name);
+    setNewCity(hotel.city || "");
+    setNewCountry(hotel.country || "");
+    setNewGoogleId(hotel.googlePlaceId || "");
+    setNewTripAdvisorId(hotel.tripAdvisorId || "");
+    setNewTripAdvisorUrl(hotel.tripAdvisorUrl || "");
+    setLookupResults(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingHotelId(null);
+    setNewName("");
+    setNewCity("");
+    setNewCountry("");
+    setNewGoogleId("");
+    setNewTripAdvisorId("");
+    setNewTripAdvisorUrl("");
+    setLookupResults(null);
   }
 
   /* ── Delete Hotel ────────────────────────────────────────── */
@@ -368,9 +400,9 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="section-title">Add Hotel</div>
+            <div className="section-title">{editingHotelId ? "Edit Hotel" : "Add Hotel"}</div>
 
-            <form onSubmit={handleAddHotel}>
+            <form onSubmit={handleSaveHotel}>
               <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div className="form-group">
                   <label>Hotel Name *</label>
@@ -531,13 +563,25 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={loading || !newName.trim()}
-                >
-                  {loading ? <span className="spinner" /> : "Add Hotel"}
-                </button>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={loading || !newName.trim()}
+                    style={{ flex: 1 }}
+                  >
+                    {loading ? <span className="spinner" /> : (editingHotelId ? "Update Hotel" : "Add Hotel")}
+                  </button>
+                  {editingHotelId && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={cancelEdit}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             </form>
           </div>
@@ -573,6 +617,12 @@ export default function AdminPage() {
                           </p>
                         </div>
                         <div className="admin-actions">
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => startEdit(hotel)}
+                          >
+                            ✏️ Edit
+                          </button>
                           {hotel.googlePlaceId && (
                             <button
                               className="btn btn-sm btn-secondary"

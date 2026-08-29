@@ -12,10 +12,18 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
   if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
 
   // We rely on the exact hotel name. Alternatively, if we know the placeId, we could use that.
-  // The actor handles search arrays.
-  const searchString = hotel.googlePlaceId 
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name)}&query_place_id=${hotel.googlePlaceId}`
-    : hotel.name;
+  let apifyBody: any = { maxReviews, reviewsSort: "newest" };
+
+  if (hotel.googlePlaceId) {
+    // Check if the placeId is already a URL
+    let mapUrl = hotel.googlePlaceId;
+    if (!mapUrl.startsWith("http")) {
+      mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name)}&query_place_id=${hotel.googlePlaceId}`;
+    }
+    apifyBody.startUrls = [{ url: mapUrl }];
+  } else {
+    apifyBody.searchStringsArray = [hotel.name];
+  }
 
   const url = `https://api.apify.com/v2/acts/${APIFY_GOOGLE_ACTOR_ID}/run-sync-get-dataset-items?token=${APIFY_API_TOKEN}`;
   
@@ -24,11 +32,7 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      searchStringsArray: [searchString],
-      maxReviews: maxReviews,
-      reviewsSort: "newest",
-    }),
+    body: JSON.stringify(apifyBody),
   });
 
   if (!res.ok) {
