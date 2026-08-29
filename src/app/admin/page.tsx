@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [newCountry, setNewCountry] = useState("");
   const [newGoogleId, setNewGoogleId] = useState("");
   const [newTripAdvisorId, setNewTripAdvisorId] = useState("");
+  const [newTripAdvisorUrl, setNewTripAdvisorUrl] = useState("");
   const [lookupResults, setLookupResults] = useState<{
     google: Array<{ title?: string; place_id?: string; data_id?: string; address?: string }>;
     tripadvisor: Array<{ title?: string; link?: string; location_id?: string }>;
@@ -207,6 +208,7 @@ export default function AdminPage() {
           name: newName,
           googlePlaceId: newGoogleId || undefined,
           tripAdvisorId: newTripAdvisorId || undefined,
+          tripAdvisorUrl: newTripAdvisorUrl || undefined,
           city: newCity || undefined,
           country: newCountry || undefined,
         }),
@@ -223,6 +225,7 @@ export default function AdminPage() {
       setNewCountry("");
       setNewGoogleId("");
       setNewTripAdvisorId("");
+      setNewTripAdvisorUrl("");
       setLookupResults(null);
       loadData();
     } catch (err) {
@@ -476,9 +479,10 @@ export default function AdminPage() {
                               cursor: "pointer",
                               border: "1px solid var(--border)",
                             }}
-                            onClick={() =>
-                              setNewTripAdvisorId(r.location_id || r.link || "")
-                            }
+                            onClick={() => {
+                              if (r.location_id) setNewTripAdvisorId(r.location_id);
+                              if (r.link) setNewTripAdvisorUrl(r.link);
+                            }}
                           >
                             {r.title}
                             <span
@@ -514,6 +518,16 @@ export default function AdminPage() {
                     placeholder="Auto-filled or paste manually"
                     value={newTripAdvisorId}
                     onChange={(e) => setNewTripAdvisorId(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>TripAdvisor URL (For Apify)</label>
+                  <input
+                    className="input"
+                    placeholder="https://www.tripadvisor.com/Hotel_Review-..."
+                    value={newTripAdvisorUrl}
+                    onChange={(e) => setNewTripAdvisorUrl(e.target.value)}
                   />
                 </div>
 

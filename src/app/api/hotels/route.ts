@@ -41,12 +41,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Automatically lookup TripAdvisor contentId if not provided
-  if (!tripAdvisorId) {
+  if (!tripAdvisorId || !tripAdvisorUrl) {
     try {
       const { searchTripAdvisorRapid } = await import("@/lib/rapidapi");
       const results = await searchTripAdvisorRapid(name + (city ? " " + city : ""));
       if (results && results.length > 0) {
-        tripAdvisorId = results[0].location_id;
+        if (!tripAdvisorId) tripAdvisorId = results[0].location_id;
+        if (!tripAdvisorUrl && results[0].link) tripAdvisorUrl = results[0].link;
       }
     } catch (error) {
       console.error("Failed to auto-lookup TripAdvisor ID:", error);
