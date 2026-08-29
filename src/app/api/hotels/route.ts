@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       if (results && results.length > 0) {
         if (!tripAdvisorId) tripAdvisorId = results[0].location_id;
         if (!tripAdvisorUrl && results[0].link) tripAdvisorUrl = results[0].link;
+        if (!tripAdvisorUrl && results[0].location_id) tripAdvisorUrl = `https://www.tripadvisor.com/Hotel_Review-d${results[0].location_id}`;
       }
     } catch (error) {
       console.error("Failed to auto-lookup TripAdvisor ID:", error);

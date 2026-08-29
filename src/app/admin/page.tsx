@@ -179,8 +179,10 @@ export default function AdminPage() {
         setNewGoogleId(results.google[0].data_id || results.google[0].place_id || "");
       }
       if (results.tripadvisor && results.tripadvisor.length > 0) {
-        if (results.tripadvisor[0].location_id) setNewTripAdvisorId(results.tripadvisor[0].location_id);
-        if (results.tripadvisor[0].link) setNewTripAdvisorUrl(results.tripadvisor[0].link);
+        if (results.tripadvisor[0].location_id) {
+          setNewTripAdvisorId(results.tripadvisor[0].location_id);
+          setNewTripAdvisorUrl(results.tripadvisor[0].link || `https://www.tripadvisor.com/Hotel_Review-d${results.tripadvisor[0].location_id}`);
+        }
       }
 
     } catch {
