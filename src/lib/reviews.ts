@@ -161,14 +161,13 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
         : null);
 
     if (locationId) {
-      for (let page = 1; page <= pages; page++) {
-        const reviews = await fetchTripAdvisorReviewsRapid(locationId, page);
-        for (const review of reviews) {
-          const created = await upsertTripAdvisorReview(hotel.id, review);
-          totalFetched++;
-          if (created) newReviews++;
-        }
-        if (reviews.length === 0) break;
+      // The TA RapidAPI endpoint does not support offset/pagination for reviews.
+      // It only returns the most recent ~20-50 reviews.
+      const reviews = await fetchTripAdvisorReviewsRapid(locationId, 1);
+      for (const review of reviews) {
+        const created = await upsertTripAdvisorReview(hotel.id, review);
+        totalFetched++;
+        if (created) newReviews++;
       }
     }
   }

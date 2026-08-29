@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, FormEvent } from "react";
+import { useState, useEffect, useCallback, FormEvent, useRef } from "react";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -60,6 +60,9 @@ export default function Home() {
   const [hotelsLoading, setHotelsLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const searchSectionRef = useRef<HTMLDivElement>(null);
+  const resultsSectionRef = useRef<HTMLDivElement>(null);
+
   // Fetch hotels on mount
   useEffect(() => {
     fetch("/api/hotels")
@@ -73,6 +76,24 @@ export default function Home() {
         setHotelsLoading(false);
       });
   }, []);
+
+  // Auto-scroll to search section when hotel is selected
+  useEffect(() => {
+    if (selectedHotel && searchSectionRef.current) {
+      setTimeout(() => {
+        searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [selectedHotel]);
+
+  // Auto-scroll to results when they are loaded
+  useEffect(() => {
+    if (results && resultsSectionRef.current) {
+      setTimeout(() => {
+        resultsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [results, page]);
 
   const handleSearch = useCallback(
     async (e?: FormEvent, targetPage: number = 1) => {
@@ -131,79 +152,81 @@ export default function Home() {
 
       <div className="container page-content">
         {/* Hotel Selection */}
-        <div className="section-title">Select a Hotel</div>
+        <div className="section-wrapper">
+          <div className="section-title">Select a Hotel</div>
 
-        {hotelsLoading ? (
-          <div className="hotel-grid">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="card"
-                style={{ height: 100, opacity: 0.5 }}
-              >
+          {hotelsLoading ? (
+            <div className="hotel-grid">
+              {[1, 2, 3].map((i) => (
                 <div
-                  className="loading-skeleton"
-                  style={{ height: 20, width: "60%", marginBottom: 8 }}
-                />
-                <div
-                  className="loading-skeleton"
-                  style={{ height: 14, width: "40%" }}
-                />
-              </div>
-            ))}
-          </div>
-        ) : hotels.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🏨</div>
-            <h3>No hotels configured</h3>
-            <p>
-              Go to the{" "}
-              <a href="/admin" style={{ color: "var(--accent)" }}>
-                Admin page
-              </a>{" "}
-              to add hotels.
-            </p>
-          </div>
-        ) : (
-          <div className="hotel-grid">
-            {hotels.map((hotel) => (
-              <div
-                key={hotel.id}
-                className={`card hotel-card ${
-                  selectedHotel?.id === hotel.id ? "selected" : ""
-                }`}
-                onClick={() => setSelectedHotel(hotel)}
-              >
-                <div className="hotel-name">{hotel.name}</div>
-                <div className="hotel-location">
-                  {[hotel.city, hotel.country].filter(Boolean).join(", ") ||
-                    "Location not set"}
-                </div>
-                <div className="hotel-review-count">
-                  {hotel._count?.reviews ?? 0} reviews cached
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    marginTop: 8,
-                  }}
+                  key={i}
+                  className="card"
+                  style={{ height: 100, opacity: 0.5 }}
                 >
-                  {hotel.googlePlaceId && (
-                    <span className="badge badge-google">Google</span>
-                  )}
-                  {(hotel.tripAdvisorId || hotel.tripAdvisorUrl) && (
-                    <span className="badge badge-tripadvisor">TripAdvisor</span>
-                  )}
+                  <div
+                    className="loading-skeleton"
+                    style={{ height: 20, width: "60%", marginBottom: 8 }}
+                  />
+                  <div
+                    className="loading-skeleton"
+                    style={{ height: 14, width: "40%" }}
+                  />
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          ) : hotels.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">🏨</div>
+              <h3>No hotels configured</h3>
+              <p>
+                Go to the{" "}
+                <a href="/admin" style={{ color: "var(--accent)" }}>
+                  Admin page
+                </a>{" "}
+                to add hotels.
+              </p>
+            </div>
+          ) : (
+            <div className="hotel-grid">
+              {hotels.map((hotel) => (
+                <div
+                  key={hotel.id}
+                  className={`card hotel-card ${
+                    selectedHotel?.id === hotel.id ? "selected" : ""
+                  }`}
+                  onClick={() => setSelectedHotel(hotel)}
+                >
+                  <div className="hotel-name">{hotel.name}</div>
+                  <div className="hotel-location">
+                    {[hotel.city, hotel.country].filter(Boolean).join(", ") ||
+                      "Location not set"}
+                  </div>
+                  <div className="hotel-review-count">
+                    {hotel._count?.reviews ?? 0} reviews cached
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      marginTop: 8,
+                    }}
+                  >
+                    {hotel.googlePlaceId && (
+                      <span className="badge badge-google">Google</span>
+                    )}
+                    {(hotel.tripAdvisorId || hotel.tripAdvisorUrl) && (
+                      <span className="badge badge-tripadvisor">TripAdvisor</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Search Form */}
         {selectedHotel && (
-          <div className="search-section">
+          <div className="section-wrapper search-section" ref={searchSectionRef}>
             <div className="section-title">
               Search Reviews — {selectedHotel.name}
             </div>
@@ -290,7 +313,7 @@ export default function Home() {
 
         {/* Results */}
         {results && (
-          <div>
+          <div className="section-wrapper results-wrapper" ref={resultsSectionRef}>
             <div className="results-header">
               <div className="results-count">
                 Found <strong>{results.totalCount}</strong> matching review{results.totalCount !== 1 ? "s" : ""}
