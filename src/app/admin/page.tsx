@@ -800,8 +800,29 @@ export default function AdminPage() {
             <div className="section-title">User Management</div>
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
               {usersLoading ? (
-                <div style={{ textAlign: "center", padding: 48 }}><span className="spinner" /></div>
-              ) : (
+                  <div className="table-responsive">
+                    <table className="table admin-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Verified</th><th>Joined</th><th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[1, 2, 3, 4].map(i => (
+                          <tr key={i}>
+                            <td><div className="loading-skeleton" style={{ width: 100, height: 16 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 140, height: 16 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 60, height: 24, borderRadius: 12 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 80, height: 24, borderRadius: 12 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 24, height: 24, borderRadius: '50%' }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 80, height: 16 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 120, height: 32, borderRadius: 16 }} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
@@ -902,8 +923,36 @@ export default function AdminPage() {
             <div className="section-title">Hotel Requests</div>
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
               {requestsLoading ? (
-                <div style={{ textAlign: "center", padding: 48 }}><span className="spinner" /></div>
-              ) : requests.length === 0 ? (
+                  <div className="table-responsive">
+                    <table className="table admin-table">
+                      <thead>
+                        <tr>
+                          <th>Hotel Name</th><th>Location</th><th>Requested By</th><th>Status</th><th>Date</th><th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[1, 2, 3].map(i => (
+                          <tr key={i}>
+                            <td><div className="loading-skeleton" style={{ width: 120, height: 16 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 100, height: 16 }} /></td>
+                            <td>
+                               <div className="loading-skeleton" style={{ width: 100, height: 16, marginBottom: 4 }} />
+                               <div className="loading-skeleton" style={{ width: 140, height: 12 }} />
+                            </td>
+                            <td><div className="loading-skeleton" style={{ width: 80, height: 24, borderRadius: 12 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 80, height: 16 }} /></td>
+                            <td>
+                               <div style={{ display: "flex", gap: 8 }}>
+                                  <div className="loading-skeleton" style={{ width: 80, height: 32, borderRadius: 6 }} />
+                                  <div className="loading-skeleton" style={{ width: 80, height: 32, borderRadius: 6 }} />
+                               </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : requests.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 48, color: "var(--text-tertiary)" }}>No hotel requests.</div>
               ) : (
                 <div style={{ overflowX: "auto" }}>
@@ -972,8 +1021,23 @@ export default function AdminPage() {
               </p>
 
               {settingsLoading ? (
-                <div style={{ textAlign: "center", padding: 32 }}><span className="spinner" /></div>
-              ) : (
+                  <div className="admin-section">
+                    <div className="section-title">API Keys</div>
+                    <div className="card">
+                      <div className="form-group" style={{ marginBottom: 16 }}>
+                         <div className="loading-skeleton" style={{ width: 120, height: 16, marginBottom: 8 }} />
+                         <div className="loading-skeleton" style={{ width: "100%", height: 44, borderRadius: 12 }} />
+                      </div>
+                      <div className="form-group">
+                         <div className="loading-skeleton" style={{ width: 150, height: 16, marginBottom: 8 }} />
+                         <div className="loading-skeleton" style={{ width: "100%", height: 44, borderRadius: 12 }} />
+                      </div>
+                      <div style={{ marginTop: 16 }}>
+                         <div className="loading-skeleton" style={{ width: 100, height: 40, borderRadius: 8 }} />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                 <form onSubmit={handleSaveSettings}>
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label>Default Google Reviews Provider</label>
@@ -1055,8 +1119,17 @@ export default function AdminPage() {
 
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
               {logsLoading ? (
-                <div style={{ textAlign: "center", padding: 48 }}><span className="spinner" /></div>
-              ) : logs.length === 0 ? (
+                  <div className="card" style={{ padding: 0 }}>
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", gap: 16, alignItems: "center" }}>
+                        <div className="loading-skeleton" style={{ width: 120, height: 16 }} />
+                        <div className="loading-skeleton" style={{ width: 48, height: 20, borderRadius: 4 }} />
+                        <div className="loading-skeleton" style={{ flex: 1, height: 16 }} />
+                        <div className="loading-skeleton" style={{ width: 120, height: 16 }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : logs.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 48, color: "var(--text-tertiary)" }}>No logs found matching criteria.</div>
               ) : (
                 <div style={{ overflowX: "auto" }}>

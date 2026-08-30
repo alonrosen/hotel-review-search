@@ -494,7 +494,7 @@ export default function Home() {
           </div>
         )}
 
-        {results && (
+        {(results || loading) && (
           <div className="section-wrapper results-wrapper" ref={resultsSectionRef}>
             <button 
               className="btn btn-ghost" 
@@ -503,6 +503,29 @@ export default function Home() {
             >
               ← Back to Search Criteria
             </button>
+            {loading ? (
+              <div className="results-list">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="card review-card" style={{ opacity: 0.6 }}>
+                    <div className="review-header">
+                      <div className="review-author" style={{ gap: 8 }}>
+                        <div className="loading-skeleton" style={{ width: 48, height: 20, borderRadius: 12 }}></div>
+                        <div className="loading-skeleton" style={{ width: 120, height: 20 }}></div>
+                      </div>
+                    </div>
+                    <div className="review-text" style={{ marginTop: 12 }}>
+                      <div className="loading-skeleton" style={{ width: "100%", height: 16, marginBottom: 8 }}></div>
+                      <div className="loading-skeleton" style={{ width: "90%", height: 16, marginBottom: 8 }}></div>
+                      <div className="loading-skeleton" style={{ width: "60%", height: 16 }}></div>
+                    </div>
+                    <div className="review-footer" style={{ marginTop: 16 }}>
+                      <div className="loading-skeleton" style={{ width: 80, height: 14 }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : results ? (
+            <>
             <div className="results-header">
               <div className="results-count">
                 Found <strong>{results.totalCount}</strong> matching review{results.totalCount !== 1 ? "s" : ""}
@@ -551,6 +574,8 @@ export default function Home() {
                 </button>
               </div>
             )}
+            </>
+          ) : null}
           </div>
         )}
       </div>
