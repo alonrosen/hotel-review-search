@@ -18,6 +18,7 @@ interface Hotel {
     tripadvisorCount: number;
     latestGoogleReviewDate: string | null;
     latestTripadvisorReviewDate: string | null;
+    lastFetchDate: string | null;
   };
 }
 
@@ -268,6 +269,11 @@ export default function Home() {
                   </div>
                   <div className="hotel-review-count">
                     {hotel._count?.reviews ?? 0} reviews cached
+                    {hotel.stats?.lastFetchDate && (
+                      <span style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>
+                        Last fill run: {new Date(hotel.stats.lastFetchDate).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   <div
                     style={{

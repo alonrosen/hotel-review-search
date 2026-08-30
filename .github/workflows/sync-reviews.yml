@@ -1,0 +1,15 @@
+name: Sync Hotel Reviews
+
+on:
+  schedule:
+    # Runs twice daily at 00:00 and 12:00 UTC
+    - cron: '0 0,12 * * *'
+  workflow_dispatch: # Allows manual trigger from the GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Cron Sync Endpoint
+        run: |
+          curl -X GET -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" ${{ secrets.PRODUCTION_URL }}/api/cron/sync

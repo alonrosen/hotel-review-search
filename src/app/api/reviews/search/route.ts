@@ -44,16 +44,7 @@ export async function POST(req: NextRequest) {
   const take = 20;
   const skip = (pageNumber - 1) * take;
 
-  // On page 1, fetch latest reviews live from API to ensure we have fresh data
-  if (pageNumber === 1) {
-    try {
-      const { fetchAndUpsertReviews } = await import("@/lib/reviews");
-      await fetchAndUpsertReviews(hotelId, source || "both", 1);
-    } catch (err) {
-      console.error("Failed to sync live reviews on search:", err);
-      // We don't block the search if live fetch fails, just fall back to cache
-    }
-  }
+
 
   // Execute search
   const [reviews, totalCount] = await Promise.all([

@@ -35,8 +35,23 @@ export async function fetchGoogleReviewsRapid(placeId: string, limit: number = 2
     },
   });
 
-  if (!res.ok) throw new Error("RapidAPI Google Reviews failed");
+  if (!res.ok) {
+    try {
+      const { logEvent } = await import("./logger");
+      await logEvent("ERROR", "rapidapi", `RapidAPI Google Reviews HTTP failed: ${res.statusText}`);
+    } catch(e) {}
+    throw new Error("RapidAPI Google Reviews HTTP failed");
+  }
   const data = await res.json();
+  
+  if (data.status === "ERROR" || (data.data && data.data.message && data.data.message.includes("quota"))) {
+    try {
+      const { logEvent } = await import("./logger");
+      await logEvent("ERROR", "rapidapi", `RapidAPI Google Reviews API Error: ${data.data?.message || "Unknown error"}`);
+    } catch(e) {}
+    throw new Error(`RapidAPI Google Reviews API Error: ${data.data?.message || "Unknown error"}`);
+  }
+  
   return data.data?.reviews || [];
 }
 
@@ -99,8 +114,22 @@ export async function fetchTripAdvisorReviewsRapid(contentId: string, page: numb
     },
   });
 
-  if (!res.ok) throw new Error("RapidAPI TripAdvisor Reviews failed");
+  if (!res.ok) {
+    try {
+      const { logEvent } = await import("./logger");
+      await logEvent("ERROR", "rapidapi", `RapidAPI TripAdvisor Reviews HTTP failed: ${res.statusText}`);
+    } catch(e) {}
+    throw new Error("RapidAPI TripAdvisor Reviews HTTP failed");
+  }
   const data = await res.json();
+  
+  if (data.message && data.message.toLowerCase().includes("quota")) {
+    try {
+      const { logEvent } = await import("./logger");
+      await logEvent("ERROR", "rapidapi", `RapidAPI TripAdvisor API Error: ${data.message}`);
+    } catch(e) {}
+    throw new Error(`RapidAPI TripAdvisor API Error: ${data.message}`);
+  }
   
   const reviews = [];
   

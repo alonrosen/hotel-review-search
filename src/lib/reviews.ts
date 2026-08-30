@@ -173,7 +173,13 @@ export function extractTripAdvisorLocationId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export async function fetchAndUpsertReviews(hotelId: string, source: string, pages: number = 1) {
+export async function fetchAndUpsertReviews(
+  hotelId: string, 
+  source: string,
+  fetchLimit: number = 50,
+  olderThanDate?: Date, 
+  asOfDate?: Date
+) {
   const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
   if (!hotel) throw new Error("Hotel not found");
 
@@ -182,62 +188,108 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
 
   let totalFetched = 0;
   let newReviews = 0;
+  
+  const isGoogleNeeded = (source === "google" || source === "both");
+  const isTANeeded = (source === "tripadvisor" || source === "both");
 
   // Determine sinceDate to limit Apify fetches
-  const latestGoogle = await prisma.review.findFirst({
-    where: { hotelId, source: "google" },
-    orderBy: { reviewDate: "desc" }
-  });
   let googleSinceDate = new Date();
-  if (latestGoogle && latestGoogle.reviewDate) {
-    googleSinceDate = new Date(latestGoogle.reviewDate);
-    googleSinceDate.setDate(googleSinceDate.getDate() - 1);
+  if (asOfDate) {
+    googleSinceDate = asOfDate;
   } else {
-    googleSinceDate.setMonth(googleSinceDate.getMonth() - 1); // limit initial fill to 1 month
+    const latestGoogle = await prisma.review.findFirst({
+      where: { hotelId, source: "google" },
+      orderBy: { reviewDate: "desc" }
+    });
+    if (latestGoogle && latestGoogle.reviewDate) {
+      googleSinceDate = new Date(latestGoogle.reviewDate);
+      googleSinceDate.setDate(googleSinceDate.getDate() - 1);
+    } else {
+      googleSinceDate.setMonth(googleSinceDate.getMonth() - 1); // limit initial fill to 1 month if no data
+    }
   }
 
-  const latestTA = await prisma.review.findFirst({
-    where: { hotelId, source: "tripadvisor" },
-    orderBy: { reviewDate: "desc" }
-  });
   let taSinceDate = new Date();
-  if (latestTA && latestTA.reviewDate) {
-    taSinceDate = new Date(latestTA.reviewDate);
-    taSinceDate.setDate(taSinceDate.getDate() - 1);
+  if (asOfDate) {
+    taSinceDate = asOfDate;
   } else {
-    taSinceDate.setMonth(taSinceDate.getMonth() - 1); // limit initial fill to 1 month
+    const latestTA = await prisma.review.findFirst({
+      where: { hotelId, source: "tripadvisor" },
+      orderBy: { reviewDate: "desc" }
+    });
+    if (latestTA && latestTA.reviewDate) {
+      taSinceDate = new Date(latestTA.reviewDate);
+      taSinceDate.setDate(taSinceDate.getDate() - 1);
+    } else {
+      taSinceDate.setMonth(taSinceDate.getMonth() - 1); // limit initial fill to 1 month if no data
+    }
   }
 
-  if (source === "google" || source === "both") {
+  const { logEvent } = await import("@/lib/logger");
+
+  // Google Fetch Helper
+  const runGoogleFetch = async (provider: string) => {
+    if (provider === "apify") {
+      const reviews = await fetchApifyGoogleReviews(hotel, fetchLimit, googleSinceDate, olderThanDate);
+      for (const review of reviews) {
+        const created = await upsertFormattedReview(hotel.id, review);
+        totalFetched++;
+        if (created) newReviews++;
+      }
+    } else {
+      const reviews = await fetchGoogleReviewsRapid(hotel.googlePlaceId!, fetchLimit);
+      for (const review of reviews) {
+        const created = await upsertGoogleReview(hotel.id, review);
+        totalFetched++;
+        if (created) newReviews++;
+      }
+    }
+  };
+
+  if (isGoogleNeeded) {
     if (hotel.googlePlaceId || (googleProvider === "apify" && hotel.name)) {
-      if (googleProvider === "apify") {
-        const reviews = await fetchApifyGoogleReviews(hotel, 100, googleSinceDate);
-        for (const review of reviews) {
-          const created = await upsertFormattedReview(hotel.id, review);
-          totalFetched++;
-          if (created) newReviews++;
-        }
-      } else {
-        const limit = pages * 20;
-        const reviews = await fetchGoogleReviewsRapid(hotel.googlePlaceId!, limit);
-        for (const review of reviews) {
-          const created = await upsertGoogleReview(hotel.id, review);
-          totalFetched++;
-          if (created) newReviews++;
+      try {
+        await runGoogleFetch(googleProvider);
+      } catch (err: any) {
+        console.warn(`[Reviews] Google ${googleProvider} failed for ${hotel.name}. Falling back... Error: ${err.message}`);
+        await logEvent("WARN", googleProvider, `Google fetch failed, attempting fallback`, err, hotel.id);
+        
+        const fallbackProvider = googleProvider === "apify" ? "rapidapi" : "apify";
+        // Check if fallback provider requirements are met
+        if (fallbackProvider === "apify" || (fallbackProvider === "rapidapi" && hotel.googlePlaceId)) {
+          try {
+            await runGoogleFetch(fallbackProvider);
+            await logEvent("INFO", fallbackProvider, `Google fallback fetch succeeded`, null, hotel.id);
+          } catch (fallbackErr: any) {
+            console.error(`[Reviews] Google fallback (${fallbackProvider}) also failed for ${hotel.name}.`);
+            await logEvent("ERROR", fallbackProvider, `Google fallback fetch failed`, fallbackErr, hotel.id);
+          }
         }
       }
     }
   }
 
-  if (source === "tripadvisor" || source === "both") {
-    if (taProvider === "apify") {
-      if (hotel.tripAdvisorUrl) {
-        const reviews = await fetchApifyTripAdvisorReviews(hotel, 100, taSinceDate);
-        for (const review of reviews) {
-          const created = await upsertFormattedReview(hotel.id, review);
-          totalFetched++;
-          if (created) newReviews++;
-        }
+  // TripAdvisor Fetch Helper
+  const runTripAdvisorFetch = async (provider: string) => {
+    if (provider === "apify") {
+      if (!hotel.tripAdvisorUrl) throw new Error("Missing TripAdvisor URL for Apify");
+      let taStartPage = undefined;
+      if (olderThanDate) {
+         const taCount = await prisma.review.count({ 
+           where: { 
+             hotelId, 
+             source: "tripadvisor",
+             reviewDate: { gte: olderThanDate }
+           } 
+         });
+         taStartPage = Math.floor(taCount / 10) + 1;
+      }
+      
+      const reviews = await fetchApifyTripAdvisorReviews(hotel, fetchLimit, taSinceDate, taStartPage);
+      for (const review of reviews) {
+        const created = await upsertFormattedReview(hotel.id, review);
+        totalFetched++;
+        if (created) newReviews++;
       }
     } else {
       const locationId =
@@ -246,14 +298,32 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
           ? extractTripAdvisorLocationId(hotel.tripAdvisorUrl)
           : null);
 
-      if (locationId) {
-        // The TA RapidAPI endpoint does not support offset/pagination for reviews.
-        // It only returns the most recent ~20-50 reviews.
-        const reviews = await fetchTripAdvisorReviewsRapid(locationId, 1);
-        for (const review of reviews) {
-          const created = await upsertTripAdvisorReview(hotel.id, review);
-          totalFetched++;
-          if (created) newReviews++;
+      if (!locationId) throw new Error("Missing TripAdvisor Location ID for RapidAPI");
+      
+      const reviews = await fetchTripAdvisorReviewsRapid(locationId, 1);
+      for (const review of reviews) {
+        const created = await upsertTripAdvisorReview(hotel.id, review);
+        totalFetched++;
+        if (created) newReviews++;
+      }
+    }
+  };
+
+  if (isTANeeded) {
+    if (hotel.tripAdvisorId || hotel.tripAdvisorUrl) {
+      try {
+        await runTripAdvisorFetch(taProvider);
+      } catch (err: any) {
+        console.warn(`[Reviews] TA ${taProvider} failed for ${hotel.name}. Falling back... Error: ${err.message}`);
+        await logEvent("WARN", taProvider, `TripAdvisor fetch failed, attempting fallback`, err, hotel.id);
+        
+        const fallbackProvider = taProvider === "apify" ? "rapidapi" : "apify";
+        try {
+          await runTripAdvisorFetch(fallbackProvider);
+          await logEvent("INFO", fallbackProvider, `TripAdvisor fallback fetch succeeded`, null, hotel.id);
+        } catch (fallbackErr: any) {
+          console.error(`[Reviews] TA fallback (${fallbackProvider}) also failed for ${hotel.name}.`);
+          await logEvent("ERROR", fallbackProvider, `TripAdvisor fallback fetch failed`, fallbackErr, hotel.id);
         }
       }
     }
@@ -261,3 +331,4 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
 
   return { newReviews, updatedReviews: totalFetched - newReviews, totalFetched, source };
 }
+

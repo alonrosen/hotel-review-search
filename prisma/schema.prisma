@@ -60,3 +60,16 @@ model Setting {
 
   @@map("settings")
 }
+
+model Log {
+  id        String   @id @default(cuid())
+  level     String   // "INFO", "WARN", "ERROR"
+  source    String   // "apify", "rapidapi", "cron", "system"
+  message   String
+  details   String?  // JSON payload or stack trace
+  hotelId   String?  @map("hotel_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([level, source, createdAt])
+  @@map("logs")
+}

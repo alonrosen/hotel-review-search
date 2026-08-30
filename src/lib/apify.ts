@@ -8,7 +8,7 @@ const APIFY_GOOGLE_ACTOR_ID = "Xb8osYTtOjlsgI6k9";
 // TripAdvisor Reviews Scraper Actor
 const APIFY_TRIPADVISOR_ACTOR_ID = "LPshQCJhLqVNIdMrf";
 
-export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number = 1000, sinceDate?: Date) {
+export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number = 1000, sinceDate?: Date, olderThanDate?: Date) {
   if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
 
   // We rely on the exact hotel name. Alternatively, if we know the placeId, we could use that.
@@ -17,6 +17,10 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
   if (sinceDate) {
     const dateStr = sinceDate.toISOString().split('T')[0];
     apifyBody.reviewsStartDate = dateStr;
+  }
+  if (olderThanDate) {
+    const oldDateStr = olderThanDate.toISOString().split('T')[0];
+    apifyBody.reviewsOlderThan = oldDateStr;
   }
 
   if (hotel.googlePlaceId) {
@@ -42,6 +46,10 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
 
   if (!res.ok) {
     const errorText = await res.text();
+    try {
+      const { logEvent } = await import("./logger");
+      await logEvent("ERROR", "apify", `Google fetch failed: ${errorText}`, null, hotel.id);
+    } catch(e) {}
     throw new Error(`Apify Google fetch failed: ${errorText}`);
   }
 
@@ -94,7 +102,7 @@ export async function searchGooglePlaceIdApify(query: string) {
   }));
 }
 
-export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: number = 1000, sinceDate?: Date) {
+export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: number = 1000, sinceDate?: Date, startPage?: number) {
   if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
   if (!hotel.tripAdvisorUrl) throw new Error(`Hotel ${hotel.name} missing tripAdvisorUrl`);
 
@@ -113,6 +121,10 @@ export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: num
     apifyBody.since = dateStr;
   }
 
+  if (startPage !== undefined) {
+    apifyBody.startPage = startPage;
+  }
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -121,6 +133,10 @@ export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: num
 
   if (!res.ok) {
     const errorText = await res.text();
+    try {
+      const { logEvent } = await import("./logger");
+      await logEvent("ERROR", "apify", `TripAdvisor fetch failed: ${errorText}`, null, hotel.id);
+    } catch(e) {}
     throw new Error(`Apify TripAdvisor fetch failed: ${errorText}`);
   }
 
@@ -144,4 +160,34 @@ export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: num
       language: item.language || null,
     };
   });
+}
+
+export async function searchTripAdvisorApify(query: string) {
+  if (!APIFY_API_TOKEN) throw new Error("APIFY_API_TOKEN is missing");
+  
+  const url = `https://api.apify.com/v2/acts/dbEyMBriog95Fv8CW/run-sync-get-dataset-items?token=${APIFY_API_TOKEN}`;
+  
+  console.log(`[Apify] Searching TripAdvisor for: ${query}`);
+  
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: query
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Apify TripAdvisor lookup failed: ${errorText}`);
+  }
+
+  const data = await res.json();
+  
+  return data.map((item: any) => ({
+    id: item.id || item.location?.locationId,
+    name: item.name || item.location?.name,
+    address: item.address,
+    addressObj: item.addressObj,
+  }));
 }
