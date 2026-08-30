@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
 import { fetchAndUpsertReviews } from "@/lib/reviews";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
+    await requireAuth(['admin']);
     const { hotelId, olderThanDate, asOfDate, fetchLimit, source } = await req.json();
 
     if (!hotelId) {

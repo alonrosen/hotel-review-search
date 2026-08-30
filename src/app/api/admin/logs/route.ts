@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
+  try { await requireAuth(['admin']); } catch { return Response.json({ error: "Unauthorized" }, { status: 401 }); }
+
   const url = new URL(req.url);
   const limit = parseInt(url.searchParams.get("limit") || "100", 10);
   const level = url.searchParams.get("level");

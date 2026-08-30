@@ -3,8 +3,11 @@ import prisma from "@/lib/db";
 import { logEvent } from "@/lib/logger";
 
 import { runSearchWithFallback } from "@/lib/search";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  try { await requireAuth(['admin']); } catch { return Response.json({ error: "Unauthorized" }, { status: 401 }); }
+
   const { query } = await req.json();
 
   if (!query) {

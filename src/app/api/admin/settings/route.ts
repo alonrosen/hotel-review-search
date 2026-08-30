@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET() {
+  try { await requireAuth(['admin']); } catch { return Response.json({ error: "Unauthorized" }, { status: 401 }); }
+  
   const settings = await prisma.setting.findMany({
     where: {
       key: { in: ["provider_google", "provider_tripadvisor"] },
@@ -23,6 +26,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  try { await requireAuth(['admin']); } catch { return Response.json({ error: "Unauthorized" }, { status: 401 }); }
+
   const body = await req.json();
   const { provider_google, provider_tripadvisor } = body;
 

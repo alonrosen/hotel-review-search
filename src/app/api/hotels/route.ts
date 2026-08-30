@@ -5,8 +5,12 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
 import { runSearchWithFallback } from "@/lib/search";
+import { requireAuth } from "@/lib/auth";
+import { sendHotelApprovedEmail } from "@/lib/email";
 
 export async function GET() {
+  await requireAuth();
+  
   const hotels = await prisma.hotel.findMany({
     orderBy: { name: "asc" },
     include: {
@@ -71,19 +75,21 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get("x-admin-secret");
-  if (secret !== process.env.ADMIN_SECRET) {
+  try {
+    await requireAuth(['admin']);
+  } catch (err: any) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await req.json();
-  let { name, googlePlaceId, tripAdvisorId, tripAdvisorUrl, city, country } = body as {
+  let { name, googlePlaceId, tripAdvisorId, tripAdvisorUrl, city, country, requestId } = body as {
     name: string;
     googlePlaceId?: string;
     tripAdvisorId?: string;
     tripAdvisorUrl?: string;
     city?: string;
     country?: string;
+    requestId?: string;
   };
 
   if (!name) {
@@ -134,10 +140,31 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  if (requestId) {
+    try {
+      const updatedRequest = await prisma.hotelRequest.update({
+        where: { id: requestId },
+        data: { status: 'approved' },
+        include: { user: true }
+      });
+      if (updatedRequest.user && updatedRequest.user.email) {
+        await sendHotelApprovedEmail(updatedRequest.user.email, name);
+      }
+    } catch (e) {
+      console.error("Failed to approve hotel request and send email:", e);
+    }
+  }
+
   return Response.json(hotel, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {
+  try {
+    await requireAuth(['admin']);
+  } catch (err: any) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  
   const body = await req.json();
   const { id, name, googlePlaceId, tripAdvisorId, tripAdvisorUrl, city, country } = body;
 

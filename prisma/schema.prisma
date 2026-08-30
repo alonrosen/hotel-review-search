@@ -17,6 +17,7 @@ model Hotel {
   imageUrl       String?  @map("image_url")
   createdAt      DateTime @default(now()) @map("created_at")
   reviews        Review[]
+  favourites     FavouriteHotel[]
 
   @@map("hotels")
 }
@@ -43,6 +44,8 @@ model Review {
 
 model SearchLog {
   id            String    @id @default(cuid())
+  userId        String?   @map("user_id")
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   query         String
   hotelId       String?   @map("hotel_id")
   asOfDate      DateTime? @map("as_of_date")
@@ -72,4 +75,52 @@ model Log {
 
   @@index([level, source, createdAt])
   @@map("logs")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  role            String    @default("user")     // "admin" | "user"
+  status          String    @default("pending")  // "pending" | "active" | "rejected"
+  emailVerified   Boolean   @default(false) @map("email_verified")
+  verifyCode      String?   @map("verify_code")
+  verifyCodeExp   DateTime? @map("verify_code_exp")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  favourites      FavouriteHotel[]
+  hotelRequests   HotelRequest[]
+  searchLogs      SearchLog[]
+
+  @@map("users")
+}
+
+model FavouriteHotel {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  hotelId   String   @map("hotel_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, hotelId])
+  @@map("favourite_hotels")
+}
+
+model HotelRequest {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  city      String?
+  state     String?
+  country   String?
+  status    String   @default("pending")  // "pending" | "approved" | "rejected"
+  adminNote String?  @map("admin_note")
+  userNotified Boolean @default(false) @map("user_notified")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("hotel_requests")
 }

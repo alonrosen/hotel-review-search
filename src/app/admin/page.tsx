@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -35,12 +37,16 @@ interface LogEntry {
 /* ── Main Admin Page ───────────────────────────────────────── */
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"hotels" | "settings" | "logs">("hotels");
+  const { user, loading: userLoading, logout } = useAuth();
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState<"hotels" | "users" | "requests" | "settings" | "logs">("hotels");
 
   // --- Hotels State ---
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [hotelsLoading, setHotelsLoading] = useState(true);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
+  const [hotelFilter, setHotelFilter] = useState("");
 
   const [formName, setFormName] = useState("");
   const [formCity, setFormCity] = useState("");
@@ -60,6 +66,15 @@ export default function AdminPage() {
   const [backfillLoading, setBackfillLoading] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // --- Users State ---
+  const [users, setUsers] = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  // --- Requests State ---
+  const [requests, setRequests] = useState<any[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+
   // --- Settings State ---
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -76,8 +91,14 @@ export default function AdminPage() {
   const [logFilterEndDate, setLogFilterEndDate] = useState("");
   const [logLimit, setLogLimit] = useState("100");
 
-  /* ── Load Hotels ─────────────────────────────────────────── */
+  useEffect(() => {
+    if (!userLoading) {
+      if (!user) router.push("/login");
+      else if (user.role !== 'admin') router.push("/");
+    }
+  }, [user, userLoading, router]);
 
+  /* ── Load Hotels ─────────────────────────────────────────── */
   const loadHotels = useCallback(() => {
     setHotelsLoading(true);
     fetch("/api/hotels")
@@ -90,13 +111,45 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "hotels" && hotels.length === 0) {
+    if (user?.role === 'admin' && activeTab === "hotels" && hotels.length === 0) {
       loadHotels();
     }
-  }, [activeTab, hotels.length, loadHotels]);
+  }, [user, activeTab, hotels.length, loadHotels]);
+
+  /* ── Load Users ──────────────────────────────────────────── */
+  const loadUsers = useCallback(() => {
+    setUsersLoading(true);
+    fetch("/api/admin/users")
+      .then(r => r.json())
+      .then(data => {
+        setUsers(data.users || []);
+        setUsersLoading(false);
+      })
+      .catch(() => setUsersLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin' && activeTab === "users") loadUsers();
+  }, [user, activeTab, loadUsers]);
+
+  /* ── Load Requests ───────────────────────────────────────── */
+  const loadRequests = useCallback(() => {
+    setRequestsLoading(true);
+    fetch("/api/hotel-requests")
+      .then(r => r.json())
+      .then(data => {
+        setRequests(data.requests || []);
+        setRequestsLoading(false);
+      })
+      .catch(() => setRequestsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin' && activeTab === "requests") loadRequests();
+  }, [user, activeTab, loadRequests]);
+
 
   /* ── Load Settings ───────────────────────────────────────── */
-
   const loadSettings = useCallback(() => {
     setSettingsLoading(true);
     fetch("/api/admin/settings")
@@ -110,36 +163,13 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "settings") {
+    if (user?.role === 'admin' && activeTab === "settings") {
       loadSettings();
       setSettingsResult(null);
     }
-  }, [activeTab, loadSettings]);
-
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSettingsSaving(true);
-    setSettingsResult(null);
-    try {
-      const res = await fetch("/api/admin/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider_google: providerGoogle,
-          provider_tripadvisor: providerTripAdvisor,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to save settings");
-      setSettingsResult({ type: "success", message: "Settings saved successfully!" });
-    } catch (err: any) {
-      setSettingsResult({ type: "error", message: err.message });
-    } finally {
-      setSettingsSaving(false);
-    }
-  };
+  }, [user, activeTab, loadSettings]);
 
   /* ── Load Logs ───────────────────────────────────────────── */
-
   const loadLogs = useCallback(() => {
     setLogsLoading(true);
     const params = new URLSearchParams();
@@ -159,13 +189,82 @@ export default function AdminPage() {
   }, [logLimit, logFilterLevel, logFilterSource, logFilterStartDate, logFilterEndDate]);
 
   useEffect(() => {
-    if (activeTab === "logs") {
+    if (user?.role === 'admin' && activeTab === "logs") {
       loadLogs();
     }
-  }, [activeTab, loadLogs]);
+  }, [user, activeTab, loadLogs]);
+
+  if (userLoading || !user || user.role !== 'admin') {
+    return <div style={{ padding: 48, textAlign: "center" }}><span className="spinner" /></div>;
+  }
+
+  /* ── User & Request Management Handlers ──────────────────── */
+
+  const handleUpdateUserStatus = async (id: string, status: string) => {
+    try {
+      await fetch(`/api/admin/users/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateUserVerification = async (id: string, emailVerified: boolean) => {
+    try {
+      await fetch(`/api/admin/users/${id}/verify`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailVerified })
+      });
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateUserRole = async (id: string, role: string) => {
+    try {
+      await fetch(`/api/admin/users/${id}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role })
+      });
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    try {
+      await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateRequest = async (id: string, action: string) => {
+    const note = prompt(`Enter optional admin note for ${action}ing request:`);
+    if (note === null) return;
+    try {
+      await fetch(`/api/admin/hotel-requests/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, adminNote: note || undefined })
+      });
+      loadRequests();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   /* ── Hotel Management Methods ────────────────────────────── */
-
   const selectHotel = (hotel: Hotel) => {
     setEditingHotel(hotel);
     setFormName(hotel.name);
@@ -201,6 +300,7 @@ export default function AdminPage() {
 
   const clearForm = () => {
     setEditingHotel(null);
+    setActiveRequestId(null);
     setFormName("");
     setFormCity("");
     setFormCountry("");
@@ -255,11 +355,12 @@ export default function AdminPage() {
         googlePlaceId: formGooglePlaceId.trim() || undefined,
         tripAdvisorId: formTripAdvisorId.trim() || undefined,
         tripAdvisorUrl: formTripAdvisorUrl.trim() || undefined,
+        requestId: activeRequestId || undefined,
       };
       const isEdit = !!editingHotel;
       const res = await fetch("/api/hotels", {
         method: isEdit ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json", "x-admin-secret": "admin" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -270,6 +371,7 @@ export default function AdminPage() {
       });
       loadHotels();
       if (!isEdit) clearForm();
+      else setActiveRequestId(null);
     } catch (err: any) {
       setFormResult({ type: "error", message: err.message });
     } finally {
@@ -306,7 +408,29 @@ export default function AdminPage() {
     }
   };
 
-  /* ── Render ──────────────────────────────────────────────── */
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsSaving(true);
+    setSettingsResult(null);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider_google: providerGoogle,
+          provider_tripadvisor: providerTripAdvisor,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save settings");
+      setSettingsResult({ type: "success", message: "Settings saved successfully!" });
+    } catch (err: any) {
+      setSettingsResult({ type: "error", message: err.message });
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const filteredHotels = hotels.filter(h => h.name.toLowerCase().includes(hotelFilter.toLowerCase()));
 
   return (
     <>
@@ -316,35 +440,34 @@ export default function AdminPage() {
             <div className="logo-icon">⚙️</div>
             Admin Panel
           </div>
-          <div className="nav-links">
+          <div className="nav-links" style={{ flex: 1, display: "flex", gap: 24, marginLeft: 32 }}>
             <a href="/" className="nav-link">Search</a>
             <a href="/admin" className="nav-link active">Admin</a>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <a href="/profile" style={{ color: "var(--text-secondary)", fontSize: 13, textDecoration: "none" }}>{user.name}</a>
+            <button className="btn btn-ghost btn-sm" onClick={logout}>Logout</button>
           </div>
         </div>
         
         {/* Admin Tabs */}
         <div className="container" style={{ display: "flex", gap: 32, borderBottom: "1px solid var(--border-color)", paddingBottom: 0 }}>
-          <button 
-            className={`admin-tab ${activeTab === "hotels" ? "active" : ""}`}
-            onClick={() => setActiveTab("hotels")}
-            style={{ padding: "12px 0", background: "none", border: "none", borderBottom: activeTab === "hotels" ? "2px solid var(--accent)" : "2px solid transparent", color: activeTab === "hotels" ? "var(--text-primary)" : "var(--text-tertiary)", fontWeight: activeTab === "hotels" ? 600 : 400, cursor: "pointer", fontSize: 15 }}
-          >
-            Hotels
-          </button>
-          <button 
-            className={`admin-tab ${activeTab === "settings" ? "active" : ""}`}
-            onClick={() => setActiveTab("settings")}
-            style={{ padding: "12px 0", background: "none", border: "none", borderBottom: activeTab === "settings" ? "2px solid var(--accent)" : "2px solid transparent", color: activeTab === "settings" ? "var(--text-primary)" : "var(--text-tertiary)", fontWeight: activeTab === "settings" ? 600 : 400, cursor: "pointer", fontSize: 15 }}
-          >
-            Settings
-          </button>
-          <button 
-            className={`admin-tab ${activeTab === "logs" ? "active" : ""}`}
-            onClick={() => setActiveTab("logs")}
-            style={{ padding: "12px 0", background: "none", border: "none", borderBottom: activeTab === "logs" ? "2px solid var(--accent)" : "2px solid transparent", color: activeTab === "logs" ? "var(--text-primary)" : "var(--text-tertiary)", fontWeight: activeTab === "logs" ? 600 : 400, cursor: "pointer", fontSize: 15 }}
-          >
-            System Logs
-          </button>
+          {["hotels", "users", "requests", "settings", "logs"].map((tab) => (
+            <button 
+              key={tab}
+              className={`admin-tab ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab as any)}
+              style={{
+                padding: "12px 0", background: "none", border: "none",
+                borderBottom: activeTab === tab ? "2px solid var(--accent)" : "2px solid transparent",
+                color: activeTab === tab ? "var(--text-primary)" : "var(--text-tertiary)",
+                fontWeight: activeTab === tab ? 600 : 400,
+                cursor: "pointer", fontSize: 15, textTransform: "capitalize"
+              }}
+            >
+              {tab === "requests" ? "Hotel Requests" : tab}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -380,7 +503,17 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="section-title">Hotels Directory</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div className="section-title" style={{ margin: 0 }}>Hotels Directory</div>
+              <input
+                type="text"
+                className="input"
+                placeholder="Filter hotels..."
+                value={hotelFilter}
+                onChange={(e) => setHotelFilter(e.target.value)}
+                style={{ width: 200, padding: "6px 12px", fontSize: 13 }}
+              />
+            </div>
 
             {hotelsLoading ? (
               <div className="hotel-grid">
@@ -392,7 +525,7 @@ export default function AdminPage() {
                 ))}
               </div>
             ) : (
-              <div className="hotel-grid">
+              <div className="hotel-grid" style={{ maxHeight: 300, overflowY: "auto", paddingRight: 4, paddingBottom: 4 }}>
                 <div
                   className={`card hotel-card ${!editingHotel ? "selected" : ""}`}
                   onClick={clearForm}
@@ -401,7 +534,7 @@ export default function AdminPage() {
                   <span style={{ fontSize: 28, opacity: 0.6 }}>＋</span>
                   <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>New Hotel</span>
                 </div>
-                {hotels.map((hotel) => (
+                {filteredHotels.map((hotel) => (
                   <div
                     key={hotel.id}
                     className={`card hotel-card ${editingHotel?.id === hotel.id ? "selected" : ""}`}
@@ -415,7 +548,7 @@ export default function AdminPage() {
                       {hotel._count?.reviews ?? 0} reviews cached
                       {hotel.stats?.lastFetchDate && (
                         <span style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>
-                          Last fill run: {new Date(hotel.stats.lastFetchDate).toLocaleString()}
+                          Last fill: {new Date(hotel.stats.lastFetchDate).toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -601,6 +734,125 @@ export default function AdminPage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB: USERS                                                */}
+        {/* ========================================================= */}
+        {activeTab === "users" && (
+          <div>
+            <div className="section-title">User Management</div>
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {usersLoading ? (
+                <div style={{ textAlign: "center", padding: 48 }}><span className="spinner" /></div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Name</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Email</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Role</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Verified</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                        <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
+                        <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{u.email}</td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <select className="select" style={{ padding: "4px 8px", fontSize: 12 }} value={u.role} onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} value={u.status} onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}>
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} value={u.emailVerified ? "true" : "false"} onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "true")}>
+                            <option value="false">Unverified</option>
+                            <option value="true">Verified</option>
+                          </select>
+                        </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteUser(u.id)} style={{ color: "var(--red)" }}>Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB: REQUESTS                                             */}
+        {/* ========================================================= */}
+        {activeTab === "requests" && (
+          <div>
+            <div className="section-title">Hotel Requests</div>
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {requestsLoading ? (
+                <div style={{ textAlign: "center", padding: 48 }}><span className="spinner" /></div>
+              ) : requests.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 48, color: "var(--text-tertiary)" }}>No hotel requests.</div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel Name</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Location</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Requested By</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
+                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requests.map(r => (
+                      <tr key={r.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                        <td style={{ padding: "12px 16px", fontWeight: 600 }}>{r.name}</td>
+                        <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{[r.city, r.state, r.country].filter(Boolean).join(", ")}</td>
+                        <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{r.user.name} ({r.user.email})</td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <span style={{
+                            padding: "4px 8px", borderRadius: 4, fontSize: 12, fontWeight: 600,
+                            background: r.status === 'approved' ? 'rgba(52, 199, 89, 0.15)' : r.status === 'rejected' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 149, 0, 0.15)',
+                            color: r.status === 'approved' ? 'var(--green)' : r.status === 'rejected' ? 'var(--red)' : 'var(--orange)'
+                          }}>
+                            {r.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                          {r.status === 'pending' && (
+                            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                              <button className="btn btn-primary btn-sm" onClick={() => {
+                                setActiveRequestId(r.id);
+                                setFormName(r.name);
+                                setFormCity(r.city || "");
+                                setFormCountry(r.country || "");
+                                setActiveTab("hotels");
+                              }}>Approve / Create</button>
+                              <button className="btn btn-secondary btn-sm" onClick={() => handleUpdateRequest(r.id, "reject")}>Reject</button>
+                            </div>
+                          )}
+                          {r.adminNote && (
+                            <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>Note: {r.adminNote}</div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         )}
 
         {/* ========================================================= */}

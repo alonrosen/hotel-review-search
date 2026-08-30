@@ -2,8 +2,19 @@
 
 import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  let session;
+  try {
+    session = await requireAuth();
+    if (session.status !== 'active') {
+      return Response.json({ error: "Account is pending approval" }, { status: 403 });
+    }
+  } catch {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json();
   const { query, hotelId, source, asOfDate, page } = body;
 
@@ -80,6 +91,7 @@ export async function POST(req: NextRequest) {
   if (query) {
     await prisma.searchLog.create({
       data: {
+        userId: session.userId,
         query,
         hotelId,
         asOfDate: effectiveAsOfDate,
