@@ -69,6 +69,7 @@ export default function AdminPage() {
   // --- Users State ---
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   // --- Requests State ---
   const [requests, setRequests] = useState<any[]>([]);
@@ -759,31 +760,69 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {users.map(u => (
-                      <tr key={u.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                        <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
-                        <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{u.email}</td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <select className="select" style={{ padding: "4px 8px", fontSize: 12 }} value={u.role} onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}>
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} value={u.status} onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}>
-                            <option value="pending">Pending</option>
-                            <option value="active">Active</option>
-                          </select>
-                        </td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} value={u.emailVerified ? "true" : "false"} onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "true")}>
-                            <option value="false">Unverified</option>
-                            <option value="true">Verified</option>
-                          </select>
-                        </td>
-                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteUser(u.id)} style={{ color: "var(--red)" }}>Delete</button>
-                        </td>
-                      </tr>
+                      <React.Fragment key={u.id}>
+                        <tr style={{ borderBottom: "1px solid var(--border-color)", background: expandedUserId === u.id ? "var(--bg-glass-hover)" : "transparent" }}>
+                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
+                          <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{u.email}</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <select className="select" style={{ padding: "4px 8px", fontSize: 12 }} value={u.role} onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}>
+                              <option value="user">User</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} value={u.status} onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}>
+                              <option value="pending">Pending</option>
+                              <option value="active">Active</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} value={u.emailVerified ? "true" : "false"} onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "true")}>
+                              <option value="false">Unverified</option>
+                              <option value="true">Verified</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)} style={{ marginRight: 8, color: "var(--accent)" }}>Logs ({u.searchLogs?.length || 0})</button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteUser(u.id)} style={{ color: "var(--red)" }}>Delete</button>
+                          </td>
+                        </tr>
+                        {expandedUserId === u.id && (
+                          <tr style={{ background: "rgba(0,0,0,0.2)" }}>
+                            <td colSpan={6} style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-color)" }}>
+                              <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: "var(--text-secondary)" }}>Recent Search Logs</h4>
+                              {(!u.searchLogs || u.searchLogs.length === 0) ? (
+                                <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>No search logs recorded for this user.</div>
+                              ) : (
+                                <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid var(--border-color)", borderRadius: 6 }}>
+                                  <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                                    <thead style={{ background: "var(--bg-glass)", position: "sticky", top: 0 }}>
+                                      <tr>
+                                        <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Date</th>
+                                        <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Hotel</th>
+                                        <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Query</th>
+                                        <th style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600 }}>Matches</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {u.searchLogs.map((log: any) => (
+                                        <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                                          <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{new Date(log.createdAt).toLocaleString()}</td>
+                                          <td style={{ padding: "8px 12px" }}>{log.hotel?.name || "Unknown"}</td>
+                                          <td style={{ padding: "8px 12px" }}>
+                                            <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: 4, color: "var(--text-primary)" }}>{log.query}</code>
+                                          </td>
+                                          <td style={{ padding: "8px 12px", textAlign: "right", color: log.resultCount > 0 ? "var(--green)" : "var(--text-tertiary)" }}>{log.resultCount}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

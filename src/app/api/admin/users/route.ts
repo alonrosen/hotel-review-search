@@ -15,6 +15,11 @@ export async function GET() {
         status: true,
         emailVerified: true,
         createdAt: true,
+        searchLogs: {
+          take: 50,
+          orderBy: { createdAt: 'desc' },
+          include: { hotel: { select: { name: true } } }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
