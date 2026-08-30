@@ -133,3 +133,10 @@ model PreviewTest {
 
   @@map("preview_test")
 }
+
+model PreviewTestTwo {
+  id   String @id @default(cuid())
+  name String
+
+  @@map("preview_test_two")
+}
