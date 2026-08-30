@@ -128,7 +128,10 @@ export default function Home() {
 
   // Fetch hotels and favourites on mount
   useEffect(() => {
+    if (userLoading) return;
+    
     if (user && user.status === 'active') {
+      setHotelsLoading(true);
       fetch("/api/hotels")
         .then((r) => r.json())
         .then((data) => {
@@ -148,7 +151,7 @@ export default function Home() {
     } else {
       setHotelsLoading(false);
     }
-  }, [user]);
+  }, [user, userLoading]);
 
 
 
@@ -374,8 +377,18 @@ export default function Home() {
           </div>
 
           {hotelsLoading ? (
-            <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", minHeight: "30vh" }}>
-              <span className="spinner" style={{ width: 64, height: 64, borderWidth: 6, borderTopColor: "var(--accent)" }} />
+            <div className="hotel-grid" style={{ maxHeight: 500, overflowY: "hidden", paddingRight: 4, paddingBottom: 4 }}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="card hotel-card" style={{ pointerEvents: "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div className="loading-skeleton" style={{ width: "60%", height: 20 }}></div>
+                    <div className="loading-skeleton" style={{ width: 24, height: 24, borderRadius: "50%" }}></div>
+                  </div>
+                  <div className="loading-skeleton" style={{ width: "40%", height: 14, marginBottom: 12 }}></div>
+                  <div className="loading-skeleton" style={{ width: "30%", height: 12, marginBottom: 8 }}></div>
+                  <div className="loading-skeleton" style={{ width: "20%", height: 12 }}></div>
+                </div>
+              ))}
             </div>
           ) : hotels.length === 0 ? (
             <div className="empty-state">
