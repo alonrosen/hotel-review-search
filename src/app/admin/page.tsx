@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [hotelsLoading, setHotelsLoading] = useState(true);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
+  const [hotelViewState, setHotelViewState] = useState<"list" | "menu" | "edit" | "backfill" | "new">("list");
   const [hotelFilter, setHotelFilter] = useState("");
 
   const [formName, setFormName] = useState("");
@@ -98,6 +99,20 @@ export default function AdminPage() {
       else if (user.role !== 'admin') router.push("/");
     }
   }, [user, userLoading, router]);
+
+  useEffect(() => {
+    const onPopState = (e: PopStateEvent) => {
+      if (activeTab === "hotels") {
+        if (e.state && e.state.hotelViewState) {
+          setHotelViewState(e.state.hotelViewState);
+        } else {
+          setHotelViewState("list");
+        }
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [activeTab]);
 
   /* ── Load Hotels ─────────────────────────────────────────── */
   const loadHotels = useCallback(() => {
@@ -297,6 +312,8 @@ export default function AdminPage() {
       setBackfillAsOfDate("");
     }
     setBackfillResult(null);
+    setHotelViewState("menu");
+    window.history.pushState({ hotelViewState: "menu" }, "", "#menu");
   };
 
   const clearForm = () => {
@@ -312,6 +329,16 @@ export default function AdminPage() {
     setSearchResults(null);
     setBackfillAsOfDate("");
     setBackfillResult(null);
+  };
+
+  const handleNewHotel = () => {
+    clearForm();
+    setHotelViewState("new");
+    window.history.pushState({ hotelViewState: "new" }, "", "#new");
+  };
+
+  const handleGoBack = () => {
+    window.history.back();
   };
 
   const handleSearch = async () => {
@@ -452,7 +479,8 @@ export default function AdminPage() {
         </div>
         
         {/* Admin Tabs */}
-        <div className="container" style={{ display: "flex", gap: 32, borderBottom: "1px solid var(--border-color)", paddingBottom: 0 }}>
+        <div className="container admin-tabs-container" style={{ display: "flex", gap: 32, borderBottom: "1px solid var(--border-color)", paddingBottom: 0, overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <style>{`.admin-tabs-container::-webkit-scrollbar { display: none; }`}</style>
           {["hotels", "users", "requests", "settings", "logs"].map((tab) => (
             <button 
               key={tab}
@@ -479,93 +507,116 @@ export default function AdminPage() {
         {/* ========================================================= */}
         {activeTab === "hotels" && (
           <>
-            <div className="stat-row">
-              <div className="card card-compact stat-card">
-                <div className="stat-value">{hotels.length}</div>
-                <div className="stat-label">Hotels</div>
-              </div>
-              <div className="card card-compact stat-card">
-                <div className="stat-value">
-                  {hotels.reduce((acc, h) => acc + (h._count?.reviews ?? 0), 0)}
-                </div>
-                <div className="stat-label">Total Reviews</div>
-              </div>
-              <div className="card card-compact stat-card">
-                <div className="stat-value">
-                  {hotels.reduce((acc, h) => acc + (h.stats?.googleCount ?? 0), 0)}
-                </div>
-                <div className="stat-label">Google Reviews</div>
-              </div>
-              <div className="card card-compact stat-card">
-                <div className="stat-value">
-                  {hotels.reduce((acc, h) => acc + (h.stats?.tripadvisorCount ?? 0), 0)}
-                </div>
-                <div className="stat-label">TripAdvisor Reviews</div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div className="section-title" style={{ margin: 0 }}>Hotels Directory</div>
-              <input
-                type="text"
-                className="input"
-                placeholder="Filter hotels..."
-                value={hotelFilter}
-                onChange={(e) => setHotelFilter(e.target.value)}
-                style={{ width: 200, padding: "6px 12px", fontSize: 13 }}
-              />
-            </div>
-
-            {hotelsLoading ? (
-              <div className="hotel-grid">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="card" style={{ height: 100, opacity: 0.5 }}>
-                    <div className="loading-skeleton" style={{ height: 20, width: "60%", marginBottom: 8 }} />
-                    <div className="loading-skeleton" style={{ height: 14, width: "40%" }} />
+            {hotelViewState === "list" && (
+              <>
+                <div className="stat-row">
+                  <div className="card card-compact stat-card">
+                    <div className="stat-value">{hotels.length}</div>
+                    <div className="stat-label">Hotels</div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="hotel-grid" style={{ maxHeight: 300, overflowY: "auto", paddingRight: 4, paddingBottom: 4 }}>
-                <div
-                  className={`card hotel-card ${!editingHotel ? "selected" : ""}`}
-                  onClick={clearForm}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, cursor: "pointer", minHeight: 100, borderStyle: "dashed" }}
-                >
-                  <span style={{ fontSize: 28, opacity: 0.6 }}>＋</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>New Hotel</span>
+                  <div className="card card-compact stat-card">
+                    <div className="stat-value">
+                      {hotels.reduce((acc, h) => acc + (h._count?.reviews ?? 0), 0)}
+                    </div>
+                    <div className="stat-label">Total Reviews</div>
+                  </div>
+                  <div className="card card-compact stat-card">
+                    <div className="stat-value">
+                      {hotels.reduce((acc, h) => acc + (h.stats?.googleCount ?? 0), 0)}
+                    </div>
+                    <div className="stat-label">Google Reviews</div>
+                  </div>
+                  <div className="card card-compact stat-card">
+                    <div className="stat-value">
+                      {hotels.reduce((acc, h) => acc + (h.stats?.tripadvisorCount ?? 0), 0)}
+                    </div>
+                    <div className="stat-label">TripAdvisor Reviews</div>
+                  </div>
                 </div>
-                {filteredHotels.map((hotel) => (
-                  <div
-                    key={hotel.id}
-                    className={`card hotel-card ${editingHotel?.id === hotel.id ? "selected" : ""}`}
-                    onClick={() => selectHotel(hotel)}
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div className="section-title" style={{ margin: 0 }}>Hotels Directory</div>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Filter hotels..."
+                    value={hotelFilter}
+                    onChange={(e) => setHotelFilter(e.target.value)}
+                    style={{ width: 200, padding: "6px 12px", fontSize: 13 }}
+                  />
+                </div>
+
+                {hotelsLoading ? (
+                  <div className="hotel-grid">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="card" style={{ height: 80, opacity: 0.5 }}>
+                        <div className="loading-skeleton" style={{ height: 16, width: "60%", marginBottom: 8 }} />
+                        <div className="loading-skeleton" style={{ height: 12, width: "40%" }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="hotel-grid" style={{ maxHeight: "calc(100vh - 300px)", overflowY: "auto", paddingRight: 4, paddingBottom: 4 }}>
+                    <div
+                      className="card hotel-card selected"
+                      onClick={handleNewHotel}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, cursor: "pointer", minHeight: 80, borderStyle: "dashed" }}
+                    >
+                      <span style={{ fontSize: 24, opacity: 0.6 }}>＋</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>Create New Hotel</span>
+                    </div>
+                    {filteredHotels.map((hotel) => (
+                      <div
+                        key={hotel.id}
+                        className="card hotel-card"
+                        onClick={() => selectHotel(hotel)}
+                        style={{ padding: 12, minHeight: 80 }}
+                      >
+                        <div className="hotel-name" style={{ fontSize: 14 }}>{hotel.name}</div>
+                        <div className="hotel-location" style={{ fontSize: 12 }}>
+                          {[hotel.city, hotel.country].filter(Boolean).join(", ") || "Location not set"}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                          {hotel.googlePlaceId && <span className="badge badge-google" style={{ fontSize: 10, padding: "2px 6px" }}>Google</span>}
+                          {(hotel.tripAdvisorId || hotel.tripAdvisorUrl) && <span className="badge badge-tripadvisor" style={{ fontSize: 10, padding: "2px 6px" }}>TA</span>}
+                          <span style={{ fontSize: 11, color: "var(--text-tertiary)", marginLeft: "auto" }}>
+                            {hotel._count?.reviews ?? 0} revs
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {hotelViewState === "menu" && editingHotel && (
+              <div style={{ maxWidth: 600, margin: "0 auto", padding: "24px 0" }}>
+                <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back to Directory</button>
+                <div className="section-title">Manage: {editingHotel.name}</div>
+                <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={() => { setHotelViewState("edit"); window.history.pushState({ hotelViewState: "edit" }, "", "#edit"); }}
+                    style={{ padding: 16, justifyContent: "flex-start", fontSize: 15 }}
                   >
-                    <div className="hotel-name">{hotel.name}</div>
-                    <div className="hotel-location">
-                      {[hotel.city, hotel.country].filter(Boolean).join(", ") || "Location not set"}
-                    </div>
-                    <div className="hotel-review-count">
-                      {hotel._count?.reviews ?? 0} reviews cached
-                      {hotel.stats?.lastFetchDate && (
-                        <span style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>
-                          Last fill: {new Date(hotel.stats.lastFetchDate).toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                      {hotel.googlePlaceId && <span className="badge badge-google">Google</span>}
-                      {(hotel.tripAdvisorId || hotel.tripAdvisorUrl) && <span className="badge badge-tripadvisor">TA</span>}
-                    </div>
-                  </div>
-                ))}
+                    ✏️ Edit Hotel Details
+                  </button>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => { setHotelViewState("backfill"); window.history.pushState({ hotelViewState: "backfill" }, "", "#backfill"); }}
+                    style={{ padding: 16, justifyContent: "flex-start", fontSize: 15 }}
+                  >
+                    📥 Backfill Reviews
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="admin-layout">
-              {/* Left: Hotel Form */}
-              <div className="admin-section">
-                <div className="section-title" style={{ marginTop: 32 }}>
+            {(hotelViewState === "edit" || hotelViewState === "new") && (
+              <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 0" }}>
+                <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back</button>
+                <div className="section-title">
                   {editingHotel ? `Edit — ${editingHotel.name}` : "Add New Hotel"}
                 </div>
                 <div className="card">
@@ -589,7 +640,6 @@ export default function AdminPage() {
                       {searchLoading ? <span className="spinner" /> : "🔍 Search Google & TripAdvisor IDs"}
                     </button>
 
-                    {/* Unified Search Results */}
                     {searchResults && (
                       <div className="card card-compact" style={{ marginBottom: 16, background: "var(--bg-glass)", maxHeight: 360, overflowY: "auto" }}>
                         {searchResults.merged?.length > 0 ? (
@@ -657,83 +707,72 @@ export default function AdminPage() {
 
                     <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                       <button type="submit" className="btn btn-primary" disabled={saveLoading} style={{ flex: 1 }}>
-                        {saveLoading ? <span className="spinner" /> : editingHotel ? "Save Changes" : "Add Hotel"}
+                        {saveLoading ? <span className="spinner" /> : editingHotel ? "Save Changes" : "Create Hotel"}
                       </button>
-                      {editingHotel && (
-                        <button type="button" className="btn btn-ghost" onClick={clearForm}>Cancel</button>
-                      )}
                     </div>
                   </form>
                 </div>
               </div>
+            )}
 
-              {/* Right: Backfill */}
-              <div className="admin-section">
-                <div className="section-title" style={{ marginTop: 32 }}>
-                  Backfill Reviews {editingHotel && <span style={{ color: "var(--accent)", textTransform: "none", fontWeight: 400, letterSpacing: 0 }}> — {editingHotel.name}</span>}
+            {hotelViewState === "backfill" && editingHotel && (
+              <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 0" }}>
+                <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back</button>
+                <div className="section-title">
+                  Backfill Reviews — {editingHotel.name}
                 </div>
                 <div className="card">
-                  {!editingHotel ? (
-                    <div className="empty-state" style={{ padding: 32 }}>
-                      <div className="empty-state-icon">📥</div>
-                      <h3>Select a hotel</h3>
-                      <p>Click on a hotel above to configure and run a backfill.</p>
+                  {editingHotel.stats && (
+                    <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+                      <div className="card card-compact" style={{ flex: 1, textAlign: "center", background: "var(--bg-glass)" }}>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--accent-hover)" }}>{editingHotel.stats.googleCount}</div>
+                        <div className="stat-label">Google</div>
+                        {editingHotel.stats.latestGoogleReviewDate && (
+                          <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>Latest: {new Date(editingHotel.stats.latestGoogleReviewDate).toLocaleDateString()}</div>
+                        )}
+                      </div>
+                      <div className="card card-compact" style={{ flex: 1, textAlign: "center", background: "var(--bg-glass)" }}>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--green)" }}>{editingHotel.stats.tripadvisorCount}</div>
+                        <div className="stat-label">TripAdvisor</div>
+                        {editingHotel.stats.latestTripadvisorReviewDate && (
+                          <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>Latest: {new Date(editingHotel.stats.latestTripadvisorReviewDate).toLocaleDateString()}</div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      {editingHotel.stats && (
-                        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-                          <div className="card card-compact" style={{ flex: 1, textAlign: "center", background: "var(--bg-glass)" }}>
-                            <div style={{ fontSize: 22, fontWeight: 800, color: "var(--accent-hover)" }}>{editingHotel.stats.googleCount}</div>
-                            <div className="stat-label">Google</div>
-                            {editingHotel.stats.latestGoogleReviewDate && (
-                              <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>Latest: {new Date(editingHotel.stats.latestGoogleReviewDate).toLocaleDateString()}</div>
-                            )}
-                          </div>
-                          <div className="card card-compact" style={{ flex: 1, textAlign: "center", background: "var(--bg-glass)" }}>
-                            <div style={{ fontSize: 22, fontWeight: 800, color: "var(--green)" }}>{editingHotel.stats.tripadvisorCount}</div>
-                            <div className="stat-label">TripAdvisor</div>
-                            {editingHotel.stats.latestTripadvisorReviewDate && (
-                              <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>Latest: {new Date(editingHotel.stats.latestTripadvisorReviewDate).toLocaleDateString()}</div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="form-row" style={{ marginBottom: 12 }}>
-                        <div className="form-group">
-                          <label>Source</label>
-                          <select className="select" value={backfillSource} onChange={(e) => setBackfillSource(e.target.value)}>
-                            <option value="both">Both</option>
-                            <option value="google">Google</option>
-                            <option value="tripadvisor">TripAdvisor</option>
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label>Fetch Limit</label>
-                          <input className="input" type="number" value={backfillLimit} onChange={(e) => setBackfillLimit(e.target.value)} />
-                        </div>
-                      </div>
-
-                      <div className="form-group" style={{ marginBottom: 16 }}>
-                        <label>Reviews Since Date</label>
-                        <input className="input" type="date" value={backfillAsOfDate} onChange={(e) => setBackfillAsOfDate(e.target.value)} />
-                      </div>
-
-                      {backfillResult && (
-                        <div className={`toast ${backfillResult.type === "success" ? "toast-success" : "toast-error"}`} style={{ position: "relative", bottom: "auto", right: "auto", marginBottom: 12, maxWidth: "100%" }}>
-                          {backfillResult.message}
-                        </div>
-                      )}
-
-                      <button className="btn btn-primary" disabled={backfillLoading} onClick={handleBackfill} style={{ width: "100%" }}>
-                        {backfillLoading ? <span className="spinner" /> : "Run Backfill"}
-                      </button>
-                    </>
                   )}
+
+                  <div className="form-row" style={{ marginBottom: 12 }}>
+                    <div className="form-group">
+                      <label>Source</label>
+                      <select className="select" value={backfillSource} onChange={(e) => setBackfillSource(e.target.value)}>
+                        <option value="both">Both</option>
+                        <option value="google">Google</option>
+                        <option value="tripadvisor">TripAdvisor</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Fetch Limit</label>
+                      <input className="input" type="number" value={backfillLimit} onChange={(e) => setBackfillLimit(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label>Reviews Since Date</label>
+                    <input className="input" type="date" value={backfillAsOfDate} onChange={(e) => setBackfillAsOfDate(e.target.value)} />
+                  </div>
+
+                  {backfillResult && (
+                    <div className={`toast ${backfillResult.type === "success" ? "toast-success" : "toast-error"}`} style={{ position: "relative", bottom: "auto", right: "auto", marginBottom: 12, maxWidth: "100%" }}>
+                      {backfillResult.message}
+                    </div>
+                  )}
+
+                  <button className="btn btn-primary" disabled={backfillLoading} onClick={handleBackfill} style={{ width: "100%" }}>
+                    {backfillLoading ? <span className="spinner" /> : "Run Backfill"}
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
           </>
         )}
 
@@ -747,85 +786,87 @@ export default function AdminPage() {
               {usersLoading ? (
                 <div style={{ textAlign: "center", padding: 48 }}><span className="spinner" /></div>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Name</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Email</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Role</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Verified</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(u => (
-                      <Fragment key={u.id}>
-                        <tr style={{ borderBottom: "1px solid var(--border-color)", background: expandedUserId === u.id ? "var(--bg-glass-hover)" : "transparent" }}>
-                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
-                          <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{u.email}</td>
-                          <td style={{ padding: "12px 16px" }}>
-                            <select className="select" style={{ padding: "4px 8px", fontSize: 12 }} value={u.role} onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}>
-                              <option value="user">User</option>
-                              <option value="admin">Admin</option>
-                            </select>
-                          </td>
-                          <td style={{ padding: "12px 16px" }}>
-                            <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} value={u.status} onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}>
-                              <option value="pending">Pending</option>
-                              <option value="active">Active</option>
-                            </select>
-                          </td>
-                          <td style={{ padding: "12px 16px" }}>
-                            <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} value={u.emailVerified ? "true" : "false"} onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "true")}>
-                              <option value="false">Unverified</option>
-                              <option value="true">Verified</option>
-                            </select>
-                          </td>
-                          <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)} style={{ marginRight: 8, color: "var(--accent)" }}>Logs ({u.searchLogs?.length || 0})</button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteUser(u.id)} style={{ color: "var(--red)" }}>Delete</button>
-                          </td>
-                        </tr>
-                        {expandedUserId === u.id && (
-                          <tr style={{ background: "rgba(0,0,0,0.2)" }}>
-                            <td colSpan={6} style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-color)" }}>
-                              <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: "var(--text-secondary)" }}>Recent Search Logs</h4>
-                              {(!u.searchLogs || u.searchLogs.length === 0) ? (
-                                <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>No search logs recorded for this user.</div>
-                              ) : (
-                                <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid var(--border-color)", borderRadius: 6 }}>
-                                  <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
-                                    <thead style={{ background: "var(--bg-glass)", position: "sticky", top: 0 }}>
-                                      <tr>
-                                        <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Date</th>
-                                        <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Hotel</th>
-                                        <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Query</th>
-                                        <th style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600 }}>Matches</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {u.searchLogs.map((log: any) => (
-                                        <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                                          <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{new Date(log.createdAt).toLocaleString()}</td>
-                                          <td style={{ padding: "8px 12px" }}>{log.hotel?.name || "Unknown"}</td>
-                                          <td style={{ padding: "8px 12px" }}>
-                                            <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: 4, color: "var(--text-primary)" }}>{log.query}</code>
-                                          </td>
-                                          <td style={{ padding: "8px 12px", textAlign: "right", color: log.resultCount > 0 ? "var(--green)" : "var(--text-tertiary)" }}>{log.resultCount}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Name</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Email</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Role</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Verified</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map(u => (
+                        <Fragment key={u.id}>
+                          <tr style={{ borderBottom: "1px solid var(--border-color)", background: expandedUserId === u.id ? "var(--bg-glass-hover)" : "transparent" }}>
+                            <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
+                            <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{u.email}</td>
+                            <td style={{ padding: "12px 16px" }}>
+                              <select className="select" style={{ padding: "4px 8px", fontSize: 12 }} value={u.role} onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}>
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: "12px 16px" }}>
+                              <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} value={u.status} onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}>
+                                <option value="pending">Pending</option>
+                                <option value="active">Active</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: "12px 16px" }}>
+                              <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} value={u.emailVerified ? "true" : "false"} onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "true")}>
+                                <option value="false">Unverified</option>
+                                <option value="true">Verified</option>
+                              </select>
+                            </td>
+                            <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                              <button className="btn btn-ghost btn-sm" onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)} style={{ marginRight: 8, color: "var(--accent)" }}>Logs ({u.searchLogs?.length || 0})</button>
+                              <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteUser(u.id)} style={{ color: "var(--red)" }}>Delete</button>
                             </td>
                           </tr>
-                        )}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
+                          {expandedUserId === u.id && (
+                            <tr style={{ background: "rgba(0,0,0,0.2)" }}>
+                              <td colSpan={6} style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-color)" }}>
+                                <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: "var(--text-secondary)" }}>Recent Search Logs</h4>
+                                {(!u.searchLogs || u.searchLogs.length === 0) ? (
+                                  <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>No search logs recorded for this user.</div>
+                                ) : (
+                                  <div style={{ maxHeight: 200, overflowY: "auto", overflowX: "auto", border: "1px solid var(--border-color)", borderRadius: 6 }}>
+                                    <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                                      <thead style={{ background: "var(--bg-glass)", position: "sticky", top: 0 }}>
+                                        <tr>
+                                          <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Date</th>
+                                          <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Hotel</th>
+                                          <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Query</th>
+                                          <th style={{ padding: "8px 12px", textAlign: "right", fontWeight: 600 }}>Matches</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {u.searchLogs.map((log: any) => (
+                                          <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                                            <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{new Date(log.createdAt).toLocaleString()}</td>
+                                            <td style={{ padding: "8px 12px" }}>{log.hotel?.name || "Unknown"}</td>
+                                            <td style={{ padding: "8px 12px" }}>
+                                              <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: 4, color: "var(--text-primary)" }}>{log.query}</code>
+                                            </td>
+                                            <td style={{ padding: "8px 12px", textAlign: "right", color: log.resultCount > 0 ? "var(--green)" : "var(--text-tertiary)" }}>{log.resultCount}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
@@ -843,52 +884,54 @@ export default function AdminPage() {
               ) : requests.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 48, color: "var(--text-tertiary)" }}>No hotel requests.</div>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel Name</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Location</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Requested By</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requests.map(r => (
-                      <tr key={r.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                        <td style={{ padding: "12px 16px", fontWeight: 600 }}>{r.name}</td>
-                        <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{[r.city, r.state, r.country].filter(Boolean).join(", ")}</td>
-                        <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{r.user.name} ({r.user.email})</td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{
-                            padding: "4px 8px", borderRadius: 4, fontSize: 12, fontWeight: 600,
-                            background: r.status === 'approved' ? 'rgba(52, 199, 89, 0.15)' : r.status === 'rejected' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 149, 0, 0.15)',
-                            color: r.status === 'approved' ? 'var(--green)' : r.status === 'rejected' ? 'var(--red)' : 'var(--orange)'
-                          }}>
-                            {r.status.toUpperCase()}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                          {r.status === 'pending' && (
-                            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                              <button className="btn btn-primary btn-sm" onClick={() => {
-                                setActiveRequestId(r.id);
-                                setFormName(r.name);
-                                setFormCity(r.city || "");
-                                setFormCountry(r.country || "");
-                                setActiveTab("hotels");
-                              }}>Approve / Create</button>
-                              <button className="btn btn-secondary btn-sm" onClick={() => handleUpdateRequest(r.id, "reject")}>Reject</button>
-                            </div>
-                          )}
-                          {r.adminNote && (
-                            <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>Note: {r.adminNote}</div>
-                          )}
-                        </td>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel Name</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Location</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Requested By</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {requests.map(r => (
+                        <tr key={r.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{r.name}</td>
+                          <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{[r.city, r.state, r.country].filter(Boolean).join(", ")}</td>
+                          <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{r.user.name} ({r.user.email})</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <span style={{
+                              padding: "4px 8px", borderRadius: 4, fontSize: 12, fontWeight: 600,
+                              background: r.status === 'approved' ? 'rgba(52, 199, 89, 0.15)' : r.status === 'rejected' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 149, 0, 0.15)',
+                              color: r.status === 'approved' ? 'var(--green)' : r.status === 'rejected' ? 'var(--red)' : 'var(--orange)'
+                            }}>
+                              {r.status.toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                            {r.status === 'pending' && (
+                              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                                <button className="btn btn-primary btn-sm" onClick={() => {
+                                  setActiveRequestId(r.id);
+                                  setFormName(r.name);
+                                  setFormCity(r.city || "");
+                                  setFormCountry(r.country || "");
+                                  setActiveTab("hotels");
+                                }}>Approve / Create</button>
+                                <button className="btn btn-secondary btn-sm" onClick={() => handleUpdateRequest(r.id, "reject")}>Reject</button>
+                              </div>
+                            )}
+                            {r.adminNote && (
+                              <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>Note: {r.adminNote}</div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
@@ -994,52 +1037,54 @@ export default function AdminPage() {
               ) : logs.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 48, color: "var(--text-tertiary)" }}>No logs found matching criteria.</div>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Timestamp</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Level</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Source</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Message</th>
-                      <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel ID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.map((log) => (
-                      <tr key={log.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                        <td style={{ padding: "12px 16px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>
-                          {new Date(log.createdAt).toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <span style={{
-                            padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700,
-                            background: log.level === "ERROR" ? "rgba(255, 59, 48, 0.15)" : log.level === "WARN" ? "rgba(255, 149, 0, 0.15)" : "rgba(52, 199, 89, 0.15)",
-                            color: log.level === "ERROR" ? "var(--red)" : log.level === "WARN" ? "var(--orange)" : "var(--green)"
-                          }}>
-                            {log.level}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 16px", textTransform: "uppercase", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)" }}>
-                          {log.source}
-                        </td>
-                        <td style={{ padding: "12px 16px" }}>
-                          <div style={{ color: "var(--text-primary)" }}>{log.message}</div>
-                          {log.details && (
-                            <details style={{ marginTop: 8 }}>
-                              <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent)" }}>View Details</summary>
-                              <pre style={{ margin: "8px 0 0", padding: 8, background: "rgba(0,0,0,0.3)", borderRadius: 4, overflowX: "auto", fontSize: 11, color: "var(--text-tertiary)" }}>
-                                {log.details}
-                              </pre>
-                            </details>
-                          )}
-                        </td>
-                        <td style={{ padding: "12px 16px", color: "var(--text-tertiary)", fontFamily: "monospace", fontSize: 11 }}>
-                          {log.hotelId || "-"}
-                        </td>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Timestamp</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Level</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Source</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Message</th>
+                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel ID</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {logs.map((log) => (
+                        <tr key={log.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                          <td style={{ padding: "12px 16px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <span style={{
+                              padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700,
+                              background: log.level === "ERROR" ? "rgba(255, 59, 48, 0.15)" : log.level === "WARN" ? "rgba(255, 149, 0, 0.15)" : "rgba(52, 199, 89, 0.15)",
+                              color: log.level === "ERROR" ? "var(--red)" : log.level === "WARN" ? "var(--orange)" : "var(--green)"
+                            }}>
+                              {log.level}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 16px", textTransform: "uppercase", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)" }}>
+                            {log.source}
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ color: "var(--text-primary)" }}>{log.message}</div>
+                            {log.details && (
+                              <details style={{ marginTop: 8 }}>
+                                <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent)" }}>View Details</summary>
+                                <pre style={{ margin: "8px 0 0", padding: 8, background: "rgba(0,0,0,0.3)", borderRadius: 4, overflowX: "auto", fontSize: 11, color: "var(--text-tertiary)" }}>
+                                  {log.details}
+                                </pre>
+                              </details>
+                            )}
+                          </td>
+                          <td style={{ padding: "12px 16px", color: "var(--text-tertiary)", fontFamily: "monospace", fontSize: 11 }}>
+                            {log.hotelId || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>

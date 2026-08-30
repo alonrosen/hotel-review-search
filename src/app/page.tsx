@@ -350,10 +350,10 @@ export default function Home() {
       {/* Main View: Hotel List */}
       <div className="container page-content">
         <div className="section-wrapper">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 24, gap: 16 }}>
             <div className="section-title" style={{ margin: 0 }}>Select a Hotel</div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "var(--text-secondary)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+              <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                 <input type="checkbox" checked={showFavouritesOnly} onChange={(e) => setShowFavouritesOnly(e.target.checked)} />
                 Favourites Only
               </label>
@@ -363,7 +363,7 @@ export default function Home() {
                 placeholder="Filter hotels..."
                 value={hotelFilter}
                 onChange={(e) => setHotelFilter(e.target.value)}
-                style={{ width: 200, padding: "6px 12px", fontSize: 13 }}
+                style={{ width: "100%", maxWidth: 200, padding: "6px 12px", fontSize: 13 }}
               />
             </div>
           </div>
@@ -456,7 +456,7 @@ export default function Home() {
                     className="select"
                     value={source}
                     onChange={(e) => setSource(e.target.value as "both" | "google" | "tripadvisor")}
-                    style={{ minWidth: 160 }}
+                    style={{ flex: 1, minWidth: 120 }}
                   >
                     <option value="both">Both</option>
                     <option value="google">Google Maps</option>
@@ -472,7 +472,7 @@ export default function Home() {
                     className="input"
                     value={asOfDate}
                     onChange={(e) => setAsOfDate(e.target.value)}
-                    style={{ minWidth: 160 }}
+                    style={{ flex: 1, minWidth: 120 }}
                   />
                 </div>
 
