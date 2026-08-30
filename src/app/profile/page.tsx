@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 
@@ -17,8 +17,13 @@ export default function ProfilePage() {
     return <div style={{ padding: 48, textAlign: "center" }}><span className="spinner" /></div>;
   }
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
   if (!user) {
-    router.push("/login");
     return null;
   }
 
