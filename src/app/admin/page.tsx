@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 
@@ -760,7 +760,7 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {users.map(u => (
-                      <React.Fragment key={u.id}>
+                      <Fragment key={u.id}>
                         <tr style={{ borderBottom: "1px solid var(--border-color)", background: expandedUserId === u.id ? "var(--bg-glass-hover)" : "transparent" }}>
                           <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
                           <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{u.email}</td>
@@ -808,7 +808,7 @@ export default function AdminPage() {
                                       {u.searchLogs.map((log: any) => (
                                         <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                                           <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{new Date(log.createdAt).toLocaleString()}</td>
-                                          <td style={{ padding: "8px 12px" }}>{log.hotel?.name || "Unknown"}</td>
+                                          <td style={{ padding: "8px 12px" }}>{log.hotelId ? `ID: ${log.hotelId.substring(0,8)}...` : "Any"}</td>
                                           <td style={{ padding: "8px 12px" }}>
                                             <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: 4, color: "var(--text-primary)" }}>{log.query}</code>
                                           </td>
@@ -822,7 +822,7 @@ export default function AdminPage() {
                             </td>
                           </tr>
                         )}
-                      </React.Fragment>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
