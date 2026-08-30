@@ -844,6 +844,15 @@ a:hover {
     justify-content: flex-start;
     padding-top: 24px;
   }
+  
+  .results-count {
+    font-size: 12px;
+  }
+  
+  .as-of-info {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
 }
 
 @media (max-width: 480px) {

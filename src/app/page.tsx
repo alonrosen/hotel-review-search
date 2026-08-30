@@ -528,13 +528,13 @@ export default function Home() {
             <>
             <div className="results-header">
               <div className="results-count">
-                Found <strong>{results.totalCount}</strong> matching review{results.totalCount !== 1 ? "s" : ""}
+                <strong>{results.totalCount}</strong> matching review{results.totalCount !== 1 ? "s" : ""}
                 {results.query && <> for &ldquo;{results.query}&rdquo;</>}
               </div>
 
               {results.asOfDate && (
                 <div className="as-of-info">
-                  📅 Showing reviews since {new Date(results.asOfDate).toLocaleDateString()}
+                  📅 Reviews since {new Date(results.asOfDate).toLocaleDateString()}
                 </div>
               )}
             </div>
