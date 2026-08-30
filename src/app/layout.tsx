@@ -11,6 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const shouldInjectToolbar = process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview';
+
   return (
     <html lang="en">
       <body>
@@ -18,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </AuthProvider>
         <Analytics />
-        <VercelToolbar />
+        {shouldInjectToolbar && <VercelToolbar />}
       </body>
     </html>
   );
