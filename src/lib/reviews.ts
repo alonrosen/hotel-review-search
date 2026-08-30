@@ -211,7 +211,7 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
   if (source === "google" || source === "both") {
     if (hotel.googlePlaceId || (googleProvider === "apify" && hotel.name)) {
       if (googleProvider === "apify") {
-        const reviews = await fetchApifyGoogleReviews(hotel, 1000, googleSinceDate);
+        const reviews = await fetchApifyGoogleReviews(hotel, 100, googleSinceDate);
         for (const review of reviews) {
           const created = await upsertFormattedReview(hotel.id, review);
           totalFetched++;
@@ -232,7 +232,7 @@ export async function fetchAndUpsertReviews(hotelId: string, source: string, pag
   if (source === "tripadvisor" || source === "both") {
     if (taProvider === "apify") {
       if (hotel.tripAdvisorUrl) {
-        const reviews = await fetchApifyTripAdvisorReviews(hotel, 1000, taSinceDate);
+        const reviews = await fetchApifyTripAdvisorReviews(hotel, 100, taSinceDate);
         for (const review of reviews) {
           const created = await upsertFormattedReview(hotel.id, review);
           totalFetched++;

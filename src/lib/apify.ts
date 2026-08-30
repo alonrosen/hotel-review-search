@@ -17,7 +17,6 @@ export async function fetchApifyGoogleReviews(hotel: Hotel, maxReviews: number =
   if (sinceDate) {
     const dateStr = sinceDate.toISOString().split('T')[0];
     apifyBody.reviewsStartDate = dateStr;
-    apifyBody.publishedAt = dateStr;
   }
 
   if (hotel.googlePlaceId) {
@@ -106,12 +105,12 @@ export async function fetchApifyTripAdvisorReviews(hotel: Hotel, maxReviews: num
   let apifyBody: any = {
     startUrls: [{ url: hotel.tripAdvisorUrl }],
     maxItems: maxReviews,
+    sort: "NEWEST_FIRST",
   };
   
   if (sinceDate) {
     const dateStr = sinceDate.toISOString().split('T')[0];
-    apifyBody.reviewsStartDate = dateStr;
-    apifyBody.publishedAt = dateStr;
+    apifyBody.since = dateStr;
   }
 
   const res = await fetch(url, {
