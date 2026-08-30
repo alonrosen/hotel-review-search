@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Hit Cron Sync Endpoint
         run: |
-          curl -X GET -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" ${{ secrets.PRODUCTION_URL }}/api/cron/sync
+          curl -L -X GET -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" ${{ secrets.PRODUCTION_URL }}/api/cron/sync
