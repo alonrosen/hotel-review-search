@@ -65,7 +65,8 @@ export default function Home() {
   const [showFavouritesOnly, setShowFavouritesOnly] = useState(false);
   const [hotelFilter, setHotelFilter] = useState("");
 
-  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
+  const [selectedHotels, setSelectedHotels] = useState<Hotel[]>([]);
+  const [showSearchForm, setShowSearchForm] = useState(false);
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<"both" | "google" | "tripadvisor">("both");
   const [asOfDate, setAsOfDate] = useState("");
@@ -116,7 +117,7 @@ export default function Home() {
           searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 50);
       } else if (hash === "" || hash === "#") {
-        setSelectedHotel(null);
+        setSelectedHotels([]); setShowSearchForm(false);
         setResults(null);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -167,7 +168,7 @@ export default function Home() {
   const handleSearch = useCallback(
     async (e?: FormEvent, targetPage: number = 1) => {
       if (e) e.preventDefault();
-      if (!selectedHotel) return;
+      if (selectedHotels.length === 0) return;
 
       setLoading(true);
       setError("");
@@ -178,7 +179,7 @@ export default function Home() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             query: query.trim(),
-            hotelId: selectedHotel.id,
+            hotelIds: selectedHotels.map(h => h.id),
             source: source === "both" ? undefined : source,
             asOfDate: asOfDate || undefined,
             page: targetPage,
@@ -200,17 +201,21 @@ export default function Home() {
         setLoading(false);
       }
     },
-    [selectedHotel, query, source, asOfDate]
+    [selectedHotels, query, source, asOfDate]
   );
 
   const handleSelectHotel = useCallback((hotel: Hotel) => {
-    if (selectedHotel?.id === hotel.id) {
-      if (window.location.hash !== "#search" && window.location.hash !== "#results") {
-        window.history.pushState({ step: "search" }, "", "#search");
+    setSelectedHotels(prev => {
+      const isSelected = prev.some(h => h.id === hotel.id);
+      if (isSelected) {
+        const next = prev.filter(h => h.id !== hotel.id);
+        if (next.length === 0) setShowSearchForm(false);
+        return next;
+      } else {
+        return [...prev, hotel];
       }
-      return;
-    }
-    
+    });
+
     // Compute default date based on stats
     if (hotel.stats) {
       const { googleCount, tripadvisorCount, latestGoogleReviewDate, latestTripadvisorReviewDate } = hotel.stats;
@@ -218,23 +223,17 @@ export default function Home() {
         const d1 = new Date(latestGoogleReviewDate);
         const d2 = new Date(latestTripadvisorReviewDate);
         const minDate = d1 < d2 ? d1 : d2;
-        minDate.setDate(minDate.getDate() - 1); // reduce 1 day from that date
+        minDate.setDate(minDate.getDate() - 1);
         setAsOfDate(minDate.toISOString().split('T')[0]);
       } else if (googleCount === 0 || tripadvisorCount === 0) {
         const d = new Date();
-        d.setMonth(d.getMonth() - 1); // 1 month ago
+        d.setMonth(d.getMonth() - 1);
         setAsOfDate(d.toISOString().split('T')[0]);
       }
     } else {
       setAsOfDate("");
     }
-
-    setSelectedHotel(hotel);
-    setResults(null);
-    if (window.location.hash !== "#search") {
-      window.history.pushState({ step: "search" }, "", "#search");
-    }
-  }, [selectedHotel]);
+  }, []);
 
   const toggleFavourite = async (e: React.MouseEvent, hotelId: string) => {
     e.stopPropagation();
@@ -356,7 +355,7 @@ export default function Home() {
 
       {/* Main View: Hotel List */}
       <div className="container page-content">
-        {!selectedHotel && (
+        {!showSearchForm && (
         <div className="section-wrapper">
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 24, gap: 16 }}>
             <div className="section-title" style={{ margin: 0 }}>Select a Hotel</div>
@@ -404,7 +403,7 @@ export default function Home() {
               {filteredHotels.map((hotel) => (
                 <div
                   key={hotel.id}
-                  className="card hotel-card"
+                  className={`card hotel-card ${selectedHotels.some(h => h.id === hotel.id) ? "selected" : ""}`} style={{ border: selectedHotels.some(h => h.id === hotel.id) ? "2px solid var(--accent)" : undefined }}
                   onClick={() => handleSelectHotel(hotel)}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -435,14 +434,32 @@ export default function Home() {
               ))}
             </div>
           )}
+
+          {selectedHotels.length > 0 && (
+            <div style={{ position: "sticky", bottom: 20, textAlign: "center", marginTop: 24, zIndex: 10 }}>
+              <button 
+                className="btn btn-primary" 
+                style={{ padding: "12px 32px", fontSize: 16, boxShadow: "0 8px 24px rgba(99,102,241,0.4)", borderRadius: 30 }}
+                onClick={() => {
+                  setShowSearchForm(true);
+                  window.history.pushState(null, "", "#search");
+                  setTimeout(() => {
+                    searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 50);
+                }}
+              >
+                Continue to Search ({selectedHotels.length} selected)
+              </button>
+            </div>
+          )}
         </div>
         )}
 
-        {selectedHotel && (
+        {showSearchForm && (
           <div className="section-wrapper search-section" ref={searchSectionRef}>
-            <button className="btn btn-ghost" onClick={() => setSelectedHotel(null)} style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}>← Back to Hotel List</button>
+            <button className="btn btn-ghost" onClick={() => { setShowSearchForm(false); setResults(null); }} style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}>← Back to Hotel List</button>
             <div className="section-title">
-              Search Reviews — {selectedHotel.name}
+              Search Reviews — {selectedHotels.length === 1 ? selectedHotels[0].name : `${selectedHotels.length} selected hotels`}
             </div>
 
             <form onSubmit={handleSearch}>
@@ -609,7 +626,15 @@ function ReviewCard({ result }: { result: SearchResult }) {
 
   return (
     <div className={`card review-card source-${review.source}`}>
-      <div className="review-header">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.05)", gap: 12 }}>
+        {review.hotel?.name ? (
+          <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "60%" }}>
+            {review.hotel.name}
+          </span>
+        ) : <span />}
+        {dateStr && <span className="review-date" style={{ margin: 0, whiteSpace: "nowrap", fontSize: "0.75rem" }}>{dateStr}</span>}
+      </div>
+      <div className="review-header" style={{ marginTop: 0 }}>
         <div className="review-author">
           <span className={`badge badge-${review.source}`}>
             {review.source === "google" ? "Google" : "TripAdvisor"}
@@ -623,7 +648,6 @@ function ReviewCard({ result }: { result: SearchResult }) {
             </div>
           )}
         </div>
-        {dateStr && <span className="review-date">{dateStr}</span>}
       </div>
 
       <div className="review-text" dangerouslySetInnerHTML={{ __html: highlightedText }} />
