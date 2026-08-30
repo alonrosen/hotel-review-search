@@ -77,8 +77,14 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  let { name, googlePlaceId, tripAdvisorId, tripAdvisorUrl, city, country } =
-    body;
+  let { name, googlePlaceId, tripAdvisorId, tripAdvisorUrl, city, country } = body as {
+    name: string;
+    googlePlaceId?: string;
+    tripAdvisorId?: string;
+    tripAdvisorUrl?: string;
+    city?: string;
+    country?: string;
+  };
 
   if (!name) {
     return Response.json({ error: "Hotel name is required" }, { status: 400 });
@@ -94,7 +100,7 @@ export async function POST(req: NextRequest) {
   // Automatically lookup Google Place ID if not provided
   if (!googlePlaceId) {
     try {
-      const googleResults = await runSearchWithFallback("google", name + (city ? " " + city : ""), googleProvider);
+      const googleResults = await runSearchWithFallback("google", name + (city ? " " + city : ""), googleProvider) as any[];
       if (googleResults && googleResults.length > 0) {
         googlePlaceId = googleResults[0].place_id || googleResults[0].placeId || googleResults[0].id;
       }
@@ -106,7 +112,7 @@ export async function POST(req: NextRequest) {
   // Automatically lookup TripAdvisor contentId if not provided
   if (!tripAdvisorId || !tripAdvisorUrl) {
     try {
-      const results = await runSearchWithFallback("tripadvisor", name + (city ? " " + city : ""), taProvider);
+      const results = await runSearchWithFallback("tripadvisor", name + (city ? " " + city : ""), taProvider) as any[];
       if (results && results.length > 0) {
         const id = results[0].location_id || results[0].id || results[0].geoId;
         if (!tripAdvisorId) tripAdvisorId = id;
