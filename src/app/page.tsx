@@ -252,7 +252,19 @@ export default function Home() {
   };
 
   if (userLoading || !user) {
-    return <div style={{ padding: 48, textAlign: "center" }}><span className="spinner" /></div>;
+    return (
+      <>
+        <header className="header">
+          <div className="container header-inner" style={{ justifyContent: "space-between" }}>
+            <div className="logo"><div className="logo-icon">🔍</div>Hotel Review Search</div>
+            <button className="btn btn-ghost" onClick={logout} disabled>Logout</button>
+          </div>
+        </header>
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+          <span className="spinner" style={{ width: 64, height: 64, borderWidth: 6, borderTopColor: "var(--accent)" }} />
+        </div>
+      </>
+    );
   }
 
   if (user.status === 'pending') {
@@ -362,13 +374,8 @@ export default function Home() {
           </div>
 
           {hotelsLoading ? (
-            <div className="hotel-grid">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="card" style={{ height: 100, opacity: 0.5 }}>
-                  <div className="loading-skeleton" style={{ height: 20, width: "60%", marginBottom: 8 }} />
-                  <div className="loading-skeleton" style={{ height: 14, width: "40%" }} />
-                </div>
-              ))}
+            <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", minHeight: "30vh" }}>
+              <span className="spinner" style={{ width: 64, height: 64, borderWidth: 6, borderTopColor: "var(--accent)" }} />
             </div>
           ) : hotels.length === 0 ? (
             <div className="empty-state">

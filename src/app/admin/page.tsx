@@ -211,7 +211,19 @@ export default function AdminPage() {
   }, [user, activeTab, loadLogs]);
 
   if (userLoading || !user || user.role !== 'admin') {
-    return <div style={{ padding: 48, textAlign: "center" }}><span className="spinner" /></div>;
+    return (
+      <>
+        <header className="header" style={{ paddingBottom: 0 }}>
+          <div className="container header-inner" style={{ marginBottom: 16 }}>
+            <div className="logo"><div className="logo-icon">⚙️</div>Admin Panel</div>
+            <button className="btn btn-ghost" onClick={logout} disabled>Logout</button>
+          </div>
+        </header>
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+          <span className="spinner" style={{ width: 64, height: 64, borderWidth: 6, borderTopColor: "var(--accent)" }} />
+        </div>
+      </>
+    );
   }
 
   /* ── User & Request Management Handlers ──────────────────── */
