@@ -14,7 +14,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       orderBy: { createdAt: 'desc' },
       take: 100, // Limit to last 100 searches
       include: {
-        // Not all search logs have a hotelId, some might be text queries
+        hotels: { select: { name: true } }
       }
     });
 

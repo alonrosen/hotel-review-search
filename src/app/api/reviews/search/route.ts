@@ -16,11 +16,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { query, hotelId, source, asOfDate, page } = body;
+  const { query, hotelIds, source, asOfDate, page } = body;
 
-  if (!hotelId) {
+  if (!hotelIds || !Array.isArray(hotelIds) || hotelIds.length === 0) {
     return Response.json(
-      { error: "hotelId is required" },
+      { error: "hotelIds must be a non-empty array" },
       { status: 400 }
     );
   }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   // Build the where clause
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
-    hotelId,
+    hotelId: { in: hotelIds },
   };
 
   if (query) {
@@ -93,7 +93,9 @@ export async function POST(req: NextRequest) {
       data: {
         userId: session.userId,
         query,
-        hotelId,
+        hotels: {
+          connect: hotelIds.map((id: string) => ({ id }))
+        },
         asOfDate: effectiveAsOfDate,
         resultCount: totalCount,
         lastMatchDate: totalCount > 0 ? latestReviewDate : null,
