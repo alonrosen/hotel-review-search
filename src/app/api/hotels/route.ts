@@ -4,6 +4,7 @@
 
 import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
+import { runSearchWithFallback } from "@/lib/search";
 
 export async function GET() {
   const hotels = await prisma.hotel.findMany({
@@ -93,7 +94,6 @@ export async function POST(req: NextRequest) {
   // Automatically lookup Google Place ID if not provided
   if (!googlePlaceId) {
     try {
-      const { runSearchWithFallback } = await import("@/lib/search");
       const googleResults = await runSearchWithFallback("google", name + (city ? " " + city : ""), googleProvider);
       if (googleResults && googleResults.length > 0) {
         googlePlaceId = googleResults[0].place_id || googleResults[0].placeId || googleResults[0].id;
@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
   // Automatically lookup TripAdvisor contentId if not provided
   if (!tripAdvisorId || !tripAdvisorUrl) {
     try {
-      const { runSearchWithFallback } = await import("@/lib/search");
       const results = await runSearchWithFallback("tripadvisor", name + (city ? " " + city : ""), taProvider);
       if (results && results.length > 0) {
         const id = results[0].location_id || results[0].id || results[0].geoId;
