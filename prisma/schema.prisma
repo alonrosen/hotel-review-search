@@ -126,3 +126,10 @@ model HotelRequest {
 
   @@map("hotel_requests")
 }
+
+model PreviewTest {
+  id   String @id @default(cuid())
+  name String
+
+  @@map("preview_test")
+}
