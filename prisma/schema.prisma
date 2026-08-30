@@ -48,6 +48,7 @@ model SearchLog {
   user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   query         String
   hotelId       String?   @map("hotel_id")
+  hotel         Hotel?    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   asOfDate      DateTime? @map("as_of_date")
   resultCount   Int       @map("result_count")
   lastMatchDate DateTime? @map("last_match_date")

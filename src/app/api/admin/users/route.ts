@@ -18,6 +18,7 @@ export async function GET() {
         searchLogs: {
           take: 50,
           orderBy: { createdAt: 'desc' },
+          include: { hotel: { select: { name: true } } }
         },
       },
       orderBy: { createdAt: 'desc' },

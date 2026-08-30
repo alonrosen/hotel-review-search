@@ -808,7 +808,7 @@ export default function AdminPage() {
                                       {u.searchLogs.map((log: any) => (
                                         <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                                           <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{new Date(log.createdAt).toLocaleString()}</td>
-                                          <td style={{ padding: "8px 12px" }}>{log.hotelId ? `ID: ${log.hotelId.substring(0,8)}...` : "Any"}</td>
+                                          <td style={{ padding: "8px 12px" }}>{log.hotel?.name || "Unknown"}</td>
                                           <td style={{ padding: "8px 12px" }}>
                                             <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: 4, color: "var(--text-primary)" }}>{log.query}</code>
                                           </td>
