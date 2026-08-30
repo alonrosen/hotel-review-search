@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
+import { VercelToolbar } from '@vercel/toolbar/next';
 import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
@@ -15,6 +17,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           {children}
         </AuthProvider>
+        <Analytics />
+        <VercelToolbar />
       </body>
     </html>
   );
