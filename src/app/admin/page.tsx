@@ -580,20 +580,30 @@ export default function AdminPage() {
         {/* Admin Tabs */}
         <div className="container admin-tabs-container" style={{ display: "flex", gap: 32, borderBottom: "1px solid var(--border-color)", paddingBottom: 0, overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none", msOverflowStyle: "none" }}>
           <style>{`.admin-tabs-container::-webkit-scrollbar { display: none; }`}</style>
-          {["hotels", "users", "requests", "settings", "logs", "stats"].map((tab) => (
+                    {[
+            { id: "hotels", label: "Hotels", icon: "🏨" },
+            { id: "users", label: "Users", icon: "👥" },
+            { id: "requests", label: "Requests", icon: "📩" },
+            { id: "settings", label: "Settings", icon: "⚙️" },
+            { id: "logs", label: "Logs", icon: "📋" },
+            { id: "stats", label: "Stats", icon: "📊" },
+          ].map((tab) => (
             <button 
-              key={tab}
-              className={`admin-tab ${activeTab === tab ? "active" : ""}`}
-              onClick={() => setActiveTab(tab as any)}
+              key={tab.id}
+              className={`admin-tab ${activeTab === tab.id ? "active" : ""}`}
+              onClick={() => setActiveTab(tab.id as any)}
+              title={tab.label}
               style={{
-                padding: "12px 0", background: "none", border: "none",
-                borderBottom: activeTab === tab ? "2px solid var(--accent)" : "2px solid transparent",
-                color: activeTab === tab ? "var(--text-primary)" : "var(--text-tertiary)",
-                fontWeight: activeTab === tab ? 600 : 400,
-                cursor: "pointer", fontSize: 15, textTransform: "capitalize"
+                padding: "12px 8px", background: "none", border: "none",
+                borderBottom: activeTab === tab.id ? "2px solid var(--accent)" : "2px solid transparent",
+                color: activeTab === tab.id ? "var(--text-primary)" : "var(--text-tertiary)",
+                fontWeight: activeTab === tab.id ? 600 : 400,
+                cursor: "pointer", fontSize: 15, textTransform: "capitalize",
+                display: "flex", gap: 6, alignItems: "center"
               }}
             >
-              {tab === "requests" ? "Hotel Requests" : tab}
+              <span>{tab.icon}</span>
+              <span className="desktop-only">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -784,41 +794,47 @@ export default function AdminPage() {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Name</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Email</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Role</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Verified</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Name</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Email</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Role</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Verified</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {users.map(u => (
                         <Fragment key={u.id}>
                           <tr style={{ borderBottom: "1px solid var(--border-color)", background: expandedUserId === u.id ? "var(--bg-glass-hover)" : "transparent" }}>
-                            <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
-                            <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{u.email}</td>
-                            <td style={{ padding: "12px 16px" }}>
-                              <select className="select" style={{ padding: "4px 8px", fontSize: 12 }} value={u.role} onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                              </select>
+                            <td style={{ padding: "12px 8px", fontWeight: 600 }}>{u.name}</td>
+                            <td style={{ padding: "12px 8px", color: "var(--text-secondary)" }}>{u.email}</td>
+                            <td style={{ padding: "12px 8px" }}>
+                              <button className="btn btn-ghost btn-sm" style={{ padding: "4px 8px", fontSize: 13, background: u.role === 'admin' ? 'rgba(10,132,255,0.1)' : 'transparent', color: u.role === 'admin' ? 'var(--blue)' : 'var(--text-secondary)' }} onClick={() => handleUpdateUserRole(u.id, u.role === 'admin' ? 'user' : 'admin')} title={u.role === 'admin' ? "Admin" : "User"}>
+                                <span>{u.role === 'admin' ? '👑' : '👤'}</span>
+                                <span className="desktop-only" style={{ marginLeft: 6 }}>{u.role === 'admin' ? 'Admin' : 'User'}</span>
+                              </button>
                             </td>
-                            <td style={{ padding: "12px 16px" }}>
-                              <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} value={u.status} onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}>
-                                <option value="pending">Pending</option>
-                                <option value="active">Active</option>
-                              </select>
+                            <td style={{ padding: "12px 8px" }}>
+                              <button className="btn btn-ghost btn-sm" style={{ padding: "4px 8px", fontSize: 13, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} onClick={() => handleUpdateUserStatus(u.id, u.status === 'active' ? 'pending' : 'active')} title={u.status === 'active' ? "Active" : "Pending"}>
+                                <span>{u.status === 'active' ? '✅' : '⏳'}</span>
+                                <span className="desktop-only" style={{ marginLeft: 6 }}>{u.status === 'active' ? 'Active' : 'Pending'}</span>
+                              </button>
                             </td>
-                            <td style={{ padding: "12px 16px" }}>
-                              <select className="select" style={{ padding: "4px 8px", fontSize: 12, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} value={u.emailVerified ? "true" : "false"} onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "true")}>
-                                <option value="false">Unverified</option>
-                                <option value="true">Verified</option>
-                              </select>
+                            <td style={{ padding: "12px 8px" }}>
+                              <button className="btn btn-ghost btn-sm" style={{ padding: "4px 8px", fontSize: 13, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} onClick={() => handleUpdateUserVerification(u.id, !u.emailVerified)} title={u.emailVerified ? "Verified" : "Unverified"}>
+                                <span>{u.emailVerified ? '🟢' : '❌'}</span>
+                                <span className="desktop-only" style={{ marginLeft: 6 }}>{u.emailVerified ? 'Verified' : 'Unverified'}</span>
+                              </button>
                             </td>
-                            <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                              <button className="btn btn-ghost btn-sm" onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)} style={{ marginRight: 8, color: "var(--accent)" }}>Logs ({u.searchLogs?.length || 0})</button>
-                              <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteUser(u.id)} style={{ color: "var(--red)" }}>Delete</button>
+                            <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                              <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", flexWrap: "nowrap" }}>
+                                <button className="btn btn-ghost btn-sm" onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)} style={{ marginRight: 0, color: "var(--accent)" }} title="Logs">
+                                <span>📋</span><span className="desktop-only" style={{ marginLeft: 4 }}>Logs ({u.searchLogs?.length || 0})</span>
+                              </button>
+                                <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteUser(u.id)} style={{ color: "var(--red)" }} title="Delete">
+                                <span>🗑️</span><span className="desktop-only" style={{ marginLeft: 4 }}>Delete</span>
+                              </button>
+                              </div>
                             </td>
                           </tr>
                           {expandedUserId === u.id && (
@@ -882,20 +898,20 @@ export default function AdminPage() {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel Name</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Location</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Requested By</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel Name</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Location</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Requested By</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {requests.map(r => (
                         <tr key={r.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{r.name}</td>
-                          <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{[r.city, r.state, r.country].filter(Boolean).join(", ")}</td>
-                          <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{r.user.name} ({r.user.email})</td>
-                          <td style={{ padding: "12px 16px" }}>
+                          <td style={{ padding: "12px 8px", fontWeight: 600 }}>{r.name}</td>
+                          <td style={{ padding: "12px 8px", color: "var(--text-secondary)" }}>{[r.city, r.state, r.country].filter(Boolean).join(", ")}</td>
+                          <td style={{ padding: "12px 8px", color: "var(--text-secondary)" }}>{r.user.name} ({r.user.email})</td>
+                          <td style={{ padding: "12px 8px" }}>
                             <span style={{
                               padding: "4px 8px", borderRadius: 4, fontSize: 12, fontWeight: 600,
                               background: r.status === 'approved' ? 'rgba(52, 199, 89, 0.15)' : r.status === 'rejected' ? 'rgba(255, 59, 48, 0.15)' : 'rgba(255, 149, 0, 0.15)',
@@ -904,7 +920,7 @@ export default function AdminPage() {
                               {r.status.toUpperCase()}
                             </span>
                           </td>
-                          <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                          <td style={{ padding: "12px 8px", textAlign: "right" }}>
                             {r.status === 'pending' && (
                               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                                 <button className="btn btn-primary btn-sm" onClick={() => {
@@ -913,8 +929,8 @@ export default function AdminPage() {
                                   setFormCity(r.city || "");
                                   setFormCountry(r.country || "");
                                   setActiveTab("hotels");
-                                }}>Approve / Create</button>
-                                <button className="btn btn-secondary btn-sm" onClick={() => handleUpdateRequest(r.id, "reject")}>Reject</button>
+                                }} title="Approve">✅ <span className="desktop-only" style={{ marginLeft: 4 }}>Approve</span></button>
+                                <button className="btn btn-secondary btn-sm" onClick={() => handleUpdateRequest(r.id, "reject")} title="Reject">❌ <span className="desktop-only" style={{ marginLeft: 4 }}>Reject</span></button>
                               </div>
                             )}
                             {r.adminNote && (
@@ -1035,20 +1051,20 @@ export default function AdminPage() {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
                       <tr style={{ background: "var(--bg-glass)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Timestamp</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Level</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Source</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Message</th>
-                        <th style={{ padding: "12px 16px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel ID</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Timestamp</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Level</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Source</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Message</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Hotel ID</th>
                       </tr>
                     </thead>
                     <tbody>
                       {logs.map((log) => (
                         <tr key={log.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                          <td style={{ padding: "12px 16px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>
+                          <td style={{ padding: "12px 8px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>
                             {new Date(log.createdAt).toLocaleString()}
                           </td>
-                          <td style={{ padding: "12px 16px" }}>
+                          <td style={{ padding: "12px 8px" }}>
                             <span style={{
                               padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700,
                               background: log.level === "ERROR" ? "rgba(255, 59, 48, 0.15)" : log.level === "WARN" ? "rgba(255, 149, 0, 0.15)" : "rgba(52, 199, 89, 0.15)",
@@ -1057,10 +1073,10 @@ export default function AdminPage() {
                               {log.level}
                             </span>
                           </td>
-                          <td style={{ padding: "12px 16px", textTransform: "uppercase", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)" }}>
+                          <td style={{ padding: "12px 8px", textTransform: "uppercase", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)" }}>
                             {log.source}
                           </td>
-                          <td style={{ padding: "12px 16px" }}>
+                          <td style={{ padding: "12px 8px" }}>
                             <div style={{ color: "var(--text-primary)" }}>{log.message}</div>
                             {log.details && (
                               <details style={{ marginTop: 8 }}>
@@ -1071,7 +1087,7 @@ export default function AdminPage() {
                               </details>
                             )}
                           </td>
-                          <td style={{ padding: "12px 16px", color: "var(--text-tertiary)", fontFamily: "monospace", fontSize: 11 }}>
+                          <td style={{ padding: "12px 8px", color: "var(--text-tertiary)", fontFamily: "monospace", fontSize: 11 }}>
                             {log.hotelId || "-"}
                           </td>
                         </tr>

@@ -863,3 +863,10 @@ a:hover {
     display: none !important;
   }
 }
+
+/* Admin Table Mobile Adjustments */
+@media (max-width: 768px) {
+  table {
+    font-size: 11px !important;
+  }
+}
