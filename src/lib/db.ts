@@ -6,11 +6,12 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
 
 function makeClient() {
   if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is not set");
+    console.warn("DATABASE_URL or POSTGRES_PRISMA_URL is not set. Falling back to default PrismaClient.");
+    return new PrismaClient();
   }
   const pool = new pg.Pool({ connectionString });
   const adapter = new PrismaPg(pool);
