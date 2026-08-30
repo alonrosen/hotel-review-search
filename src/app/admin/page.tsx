@@ -460,6 +460,105 @@ export default function AdminPage() {
 
   const filteredHotels = hotels.filter(h => h.name.toLowerCase().includes(hotelFilter.toLowerCase()));
 
+  
+  const isManagingHotel = editingHotel && (hotelViewState === "menu" || hotelViewState === "edit" || hotelViewState === "backfill");
+
+  const editFormJsx = (
+    <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <form onSubmit={handleSave} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                    <div className="form-group" style={{ marginBottom: 12 }}>
+                      <label>Hotel Name *</label>
+                      <input className="input" placeholder="e.g. The Ritz-Carlton" value={formName} onChange={(e) => setFormName(e.target.value)} />
+                    </div>
+                    <div className="form-row" style={{ marginBottom: 12 }}>
+                      <div className="form-group">
+                        <label>City</label>
+                        <input className="input" placeholder="e.g. London" value={formCity} onChange={(e) => setFormCity(e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label>Country</label>
+                        <input className="input" placeholder="e.g. UK" value={formCountry} onChange={(e) => setFormCountry(e.target.value)} />
+                      </div>
+                    </div>
+
+                    <button type="button" className="btn btn-secondary" disabled={searchLoading || !formName.trim()} onClick={handleSearch} style={{ width: "100%", marginBottom: 16 }}>
+                      {searchLoading ? <span className="spinner" /> : "🔍 Search Google & TripAdvisor IDs"}
+                    </button>
+
+                    {searchResults && (
+                      <div className="card card-compact" style={{ marginBottom: 16, background: "var(--bg-glass)", maxHeight: 360, overflowY: "auto" }}>
+                        {searchResults.merged?.length > 0 ? (
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Unified Search Results</div>
+                            {searchResults.merged.map((r: any, i: number) => (
+                              <div 
+                                key={i} 
+                                onClick={() => { 
+                                  if (r.googlePlaceId) setFormGooglePlaceId(r.googlePlaceId); 
+                                  if (r.tripadvisorId) {
+                                    setFormTripAdvisorId(r.tripadvisorId);
+                                    setFormTripAdvisorUrl(`https://www.tripadvisor.com/Hotel_Review-d${r.tripadvisorId}`);
+                                  }
+                                  if (r.city && !formCity) setFormCity(r.city); 
+                                  if (r.countryCode && !formCountry) setFormCountry(r.countryCode); 
+                                }} 
+                                style={{ padding: "10px 12px", borderRadius: "var(--radius-sm)", cursor: "pointer", fontSize: 13, transition: "background 0.15s", borderBottom: "1px solid rgba(255,255,255,0.05)" }} 
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-glass-hover)")} 
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <div style={{ fontWeight: 600, fontSize: 14 }}>{r.name}</div>
+                                {r.address && <div style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 2 }}>{r.address}</div>}
+                                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                                  {r.googlePlaceId ? (
+                                    <span className="badge badge-google" style={{ fontSize: 10 }}>Google: {r.googlePlaceId}</span>
+                                  ) : (
+                                    <span className="badge" style={{ fontSize: 10, background: "transparent", border: "1px dashed var(--border-color)", color: "var(--text-tertiary)" }}>No Google ID</span>
+                                  )}
+                                  {r.tripadvisorId ? (
+                                    <span className="badge badge-tripadvisor" style={{ fontSize: 10 }}>TA: d{r.tripadvisorId}</span>
+                                  ) : (
+                                    <span className="badge" style={{ fontSize: 10, background: "transparent", border: "1px dashed var(--border-color)", color: "var(--text-tertiary)" }}>No TA ID</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ textAlign: "center", padding: 16, color: "var(--text-tertiary)", fontSize: 13 }}>No results found.</div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="form-group" style={{ marginBottom: 12 }}>
+                      <label>Google Place ID</label>
+                      <input className="input" value={formGooglePlaceId} onChange={(e) => setFormGooglePlaceId(e.target.value)} />
+                    </div>
+                    <div className="form-row" style={{ marginBottom: 12 }}>
+                      <div className="form-group">
+                        <label>TripAdvisor ID</label>
+                        <input className="input" value={formTripAdvisorId} onChange={(e) => setFormTripAdvisorId(e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label>TripAdvisor URL</label>
+                        <input className="input" value={formTripAdvisorUrl} onChange={(e) => setFormTripAdvisorUrl(e.target.value)} />
+                      </div>
+                    </div>
+
+                    {formResult && (
+                      <div className={`toast ${formResult.type === "success" ? "toast-success" : "toast-error"}`} style={{ position: "relative", bottom: "auto", right: "auto", marginBottom: 12, maxWidth: "100%" }}>
+                        {formResult.message}
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                      <button type="submit" className="btn btn-primary" disabled={saveLoading} style={{ flex: 1 }}>
+                        {saveLoading ? <span className="spinner" /> : editingHotel ? "Save Changes" : "Create Hotel"}
+                      </button>
+                    </div>
+                  </form>
+    </div>
+  );
+
   return (
     <>
       <header className="header" style={{ paddingBottom: 0 }}>
@@ -590,139 +689,46 @@ export default function AdminPage() {
               </>
             )}
 
-            {hotelViewState === "menu" && editingHotel && (
-              <div style={{ maxWidth: 600, margin: "0 auto", padding: "24px 0" }}>
-                <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back to Directory</button>
-                <div className="section-title">Manage: {editingHotel.name}</div>
-                <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <button 
-                    className="btn btn-secondary" 
-                    onClick={() => { setHotelViewState("edit"); window.history.pushState({ hotelViewState: "edit" }, "", "#edit"); }}
-                    style={{ padding: 16, justifyContent: "flex-start", fontSize: 15 }}
-                  >
-                    ✏️ Edit Hotel Details
-                  </button>
-                  <button 
-                    className="btn btn-primary" 
-                    onClick={() => { setHotelViewState("backfill"); window.history.pushState({ hotelViewState: "backfill" }, "", "#backfill"); }}
-                    style={{ padding: 16, justifyContent: "flex-start", fontSize: 15 }}
-                  >
-                    📥 Backfill Reviews
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {(hotelViewState === "edit" || hotelViewState === "new") && (
-              <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 0" }}>
-                <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back</button>
-                <div className="section-title">
-                  {editingHotel ? `Edit — ${editingHotel.name}` : "Add New Hotel"}
-                </div>
-                <div className="card">
-                  <form onSubmit={handleSave}>
-                    <div className="form-group" style={{ marginBottom: 12 }}>
-                      <label>Hotel Name *</label>
-                      <input className="input" placeholder="e.g. The Ritz-Carlton" value={formName} onChange={(e) => setFormName(e.target.value)} />
-                    </div>
-                    <div className="form-row" style={{ marginBottom: 12 }}>
-                      <div className="form-group">
-                        <label>City</label>
-                        <input className="input" placeholder="e.g. London" value={formCity} onChange={(e) => setFormCity(e.target.value)} />
-                      </div>
-                      <div className="form-group">
-                        <label>Country</label>
-                        <input className="input" placeholder="e.g. UK" value={formCountry} onChange={(e) => setFormCountry(e.target.value)} />
-                      </div>
-                    </div>
-
-                    <button type="button" className="btn btn-secondary" disabled={searchLoading || !formName.trim()} onClick={handleSearch} style={{ width: "100%", marginBottom: 16 }}>
-                      {searchLoading ? <span className="spinner" /> : "🔍 Search Google & TripAdvisor IDs"}
-                    </button>
-
-                    {searchResults && (
-                      <div className="card card-compact" style={{ marginBottom: 16, background: "var(--bg-glass)", maxHeight: 360, overflowY: "auto" }}>
-                        {searchResults.merged?.length > 0 ? (
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Unified Search Results</div>
-                            {searchResults.merged.map((r: any, i: number) => (
-                              <div 
-                                key={i} 
-                                onClick={() => { 
-                                  if (r.googlePlaceId) setFormGooglePlaceId(r.googlePlaceId); 
-                                  if (r.tripadvisorId) {
-                                    setFormTripAdvisorId(r.tripadvisorId);
-                                    setFormTripAdvisorUrl(`https://www.tripadvisor.com/Hotel_Review-d${r.tripadvisorId}`);
-                                  }
-                                  if (r.city && !formCity) setFormCity(r.city); 
-                                  if (r.countryCode && !formCountry) setFormCountry(r.countryCode); 
-                                }} 
-                                style={{ padding: "10px 12px", borderRadius: "var(--radius-sm)", cursor: "pointer", fontSize: 13, transition: "background 0.15s", borderBottom: "1px solid rgba(255,255,255,0.05)" }} 
-                                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-glass-hover)")} 
-                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                              >
-                                <div style={{ fontWeight: 600, fontSize: 14 }}>{r.name}</div>
-                                {r.address && <div style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 2 }}>{r.address}</div>}
-                                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                                  {r.googlePlaceId ? (
-                                    <span className="badge badge-google" style={{ fontSize: 10 }}>Google: {r.googlePlaceId}</span>
-                                  ) : (
-                                    <span className="badge" style={{ fontSize: 10, background: "transparent", border: "1px dashed var(--border-color)", color: "var(--text-tertiary)" }}>No Google ID</span>
-                                  )}
-                                  {r.tripadvisorId ? (
-                                    <span className="badge badge-tripadvisor" style={{ fontSize: 10 }}>TA: d{r.tripadvisorId}</span>
-                                  ) : (
-                                    <span className="badge" style={{ fontSize: 10, background: "transparent", border: "1px dashed var(--border-color)", color: "var(--text-tertiary)" }}>No TA ID</span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div style={{ textAlign: "center", padding: 16, color: "var(--text-tertiary)", fontSize: 13 }}>No results found.</div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="form-group" style={{ marginBottom: 12 }}>
-                      <label>Google Place ID</label>
-                      <input className="input" value={formGooglePlaceId} onChange={(e) => setFormGooglePlaceId(e.target.value)} />
-                    </div>
-                    <div className="form-row" style={{ marginBottom: 12 }}>
-                      <div className="form-group">
-                        <label>TripAdvisor ID</label>
-                        <input className="input" value={formTripAdvisorId} onChange={(e) => setFormTripAdvisorId(e.target.value)} />
-                      </div>
-                      <div className="form-group">
-                        <label>TripAdvisor URL</label>
-                        <input className="input" value={formTripAdvisorUrl} onChange={(e) => setFormTripAdvisorUrl(e.target.value)} />
-                      </div>
-                    </div>
-
-                    {formResult && (
-                      <div className={`toast ${formResult.type === "success" ? "toast-success" : "toast-error"}`} style={{ position: "relative", bottom: "auto", right: "auto", marginBottom: 12, maxWidth: "100%" }}>
-                        {formResult.message}
-                      </div>
-                    )}
-
-                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                      <button type="submit" className="btn btn-primary" disabled={saveLoading} style={{ flex: 1 }}>
-                        {saveLoading ? <span className="spinner" /> : editingHotel ? "Save Changes" : "Create Hotel"}
+            
+            {isManagingHotel && (
+              <div className="admin-layout" style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 0" }}>
+                {hotelViewState === "menu" && (
+                  <div className="mobile-only" style={{ width: "100%" }}>
+                    <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back to Directory</button>
+                    <div className="section-title">Manage: {editingHotel.name}</div>
+                    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={() => { setHotelViewState("edit"); window.history.pushState({ hotelViewState: "edit" }, "", "#edit"); }}
+                        style={{ padding: 16, justifyContent: "flex-start", fontSize: 15 }}
+                      >
+                        ✏️ Edit Hotel Details
+                      </button>
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={() => { setHotelViewState("backfill"); window.history.pushState({ hotelViewState: "backfill" }, "", "#backfill"); }}
+                        style={{ padding: 16, justifyContent: "flex-start", fontSize: 15 }}
+                      >
+                        📥 Backfill Reviews
                       </button>
                     </div>
-                  </form>
+                  </div>
+                )}
+                
+                <div className={`admin-section ${hotelViewState === "edit" ? "" : "desktop-only"}`} style={{ display: "flex", flexDirection: "column" }}>
+                  <button className="btn btn-ghost mobile-only" onClick={() => { setHotelViewState("menu"); window.history.pushState({ hotelViewState: "menu" }, "", "#menu"); }} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back</button>
+                  <button className="btn btn-ghost desktop-only" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back to Directory</button>
+                  <div className="section-title">Edit — {editingHotel.name}</div>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  {editFormJsx}
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {hotelViewState === "backfill" && editingHotel && (
-              <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 0" }}>
-                <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back</button>
-                <div className="section-title">
-                  Backfill Reviews — {editingHotel.name}
-                </div>
-                <div className="card">
-                  {editingHotel.stats && (
+                <div className={`admin-section ${hotelViewState === "backfill" ? "" : "desktop-only"}`} style={{ display: "flex", flexDirection: "column" }}>
+                  <button className="btn btn-ghost mobile-only" onClick={() => { setHotelViewState("menu"); window.history.pushState({ hotelViewState: "menu" }, "", "#menu"); }} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back</button>
+                  <div className="section-title">Backfill Reviews — {editingHotel.name}</div>
+                  <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    {editingHotel.stats && (
                     <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
                       <div className="card card-compact" style={{ flex: 1, textAlign: "center", background: "var(--bg-glass)" }}>
                         <div style={{ fontSize: 22, fontWeight: 800, color: "var(--accent-hover)" }}>{editingHotel.stats.googleCount}</div>
@@ -770,7 +776,16 @@ export default function AdminPage() {
                   <button className="btn btn-primary" disabled={backfillLoading} onClick={handleBackfill} style={{ width: "100%" }}>
                     {backfillLoading ? <span className="spinner" /> : "Run Backfill"}
                   </button>
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {hotelViewState === "new" && (
+              <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 0" }}>
+                <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px" }}>← Back</button>
+                <div className="section-title">Add New Hotel</div>
+                {editFormJsx}
               </div>
             )}
           </>

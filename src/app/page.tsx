@@ -150,14 +150,7 @@ export default function Home() {
     }
   }, [user]);
 
-  // Auto-scroll to search section when hotel is selected
-  useEffect(() => {
-    if (selectedHotel && searchSectionRef.current && window.location.hash !== "#results") {
-      setTimeout(() => {
-        searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    }
-  }, [selectedHotel]);
+
 
   // Auto-scroll to results when they are loaded
   useEffect(() => {
@@ -209,7 +202,6 @@ export default function Home() {
 
   const handleSelectHotel = useCallback((hotel: Hotel) => {
     if (selectedHotel?.id === hotel.id) {
-      searchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       if (window.location.hash !== "#search" && window.location.hash !== "#results") {
         window.history.pushState({ step: "search" }, "", "#search");
       }
@@ -349,6 +341,7 @@ export default function Home() {
 
       {/* Main View: Hotel List */}
       <div className="container page-content">
+        {!selectedHotel && (
         <div className="section-wrapper">
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 24, gap: 16 }}>
             <div className="section-title" style={{ margin: 0 }}>Select a Hotel</div>
@@ -391,7 +384,7 @@ export default function Home() {
               {filteredHotels.map((hotel) => (
                 <div
                   key={hotel.id}
-                  className={`card hotel-card ${selectedHotel?.id === hotel.id ? "selected" : ""}`}
+                  className="card hotel-card"
                   onClick={() => handleSelectHotel(hotel)}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -423,9 +416,11 @@ export default function Home() {
             </div>
           )}
         </div>
+        )}
 
         {selectedHotel && (
           <div className="section-wrapper search-section" ref={searchSectionRef}>
+            <button className="btn btn-ghost" onClick={() => setSelectedHotel(null)} style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}>← Back to Hotel List</button>
             <div className="section-title">
               Search Reviews — {selectedHotel.name}
             </div>

@@ -849,3 +849,17 @@ a:hover {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ── Utilities ─────────────────────────────────────────────── */
+.desktop-only {
+  display: none !important;
+}
+
+@media (min-width: 769px) {
+  .desktop-only {
+    display: block !important;
+  }
+  .mobile-only {
+    display: none !important;
+  }
+}
