@@ -40,7 +40,7 @@ export default function AdminPage() {
   const { user, loading: userLoading, logout } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<"hotels" | "users" | "requests" | "settings" | "logs">("hotels");
+  const [activeTab, setActiveTab] = useState<"hotels" | "users" | "requests" | "settings" | "logs" | "stats">("hotels");
 
   // --- Hotels State ---
   const [hotels, setHotels] = useState<Hotel[]>([]);
@@ -580,7 +580,7 @@ export default function AdminPage() {
         {/* Admin Tabs */}
         <div className="container admin-tabs-container" style={{ display: "flex", gap: 32, borderBottom: "1px solid var(--border-color)", paddingBottom: 0, overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none", msOverflowStyle: "none" }}>
           <style>{`.admin-tabs-container::-webkit-scrollbar { display: none; }`}</style>
-          {["hotels", "users", "requests", "settings", "logs"].map((tab) => (
+          {["hotels", "users", "requests", "settings", "logs", "stats"].map((tab) => (
             <button 
               key={tab}
               className={`admin-tab ${activeTab === tab ? "active" : ""}`}
@@ -608,30 +608,7 @@ export default function AdminPage() {
           <>
             {hotelViewState === "list" && (
               <>
-                <div className="stat-row">
-                  <div className="card card-compact stat-card">
-                    <div className="stat-value">{hotels.length}</div>
-                    <div className="stat-label">Hotels</div>
-                  </div>
-                  <div className="card card-compact stat-card">
-                    <div className="stat-value">
-                      {hotels.reduce((acc, h) => acc + (h._count?.reviews ?? 0), 0)}
-                    </div>
-                    <div className="stat-label">Total Reviews</div>
-                  </div>
-                  <div className="card card-compact stat-card">
-                    <div className="stat-value">
-                      {hotels.reduce((acc, h) => acc + (h.stats?.googleCount ?? 0), 0)}
-                    </div>
-                    <div className="stat-label">Google Reviews</div>
-                  </div>
-                  <div className="card card-compact stat-card">
-                    <div className="stat-value">
-                      {hotels.reduce((acc, h) => acc + (h.stats?.tripadvisorCount ?? 0), 0)}
-                    </div>
-                    <div className="stat-label">TripAdvisor Reviews</div>
-                  </div>
-                </div>
+                
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <div className="section-title" style={{ margin: 0 }}>Hotels Directory</div>
@@ -1103,6 +1080,39 @@ export default function AdminPage() {
                   </table>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB: STATS                                                */}
+        {/* ========================================================= */}
+        {activeTab === "stats" && (
+          <div>
+            <div className="section-title">Global Statistics</div>
+            <div className="stat-row">
+              <div className="card card-compact stat-card">
+                <div className="stat-value">{hotels.length}</div>
+                <div className="stat-label">Hotels</div>
+              </div>
+              <div className="card card-compact stat-card">
+                <div className="stat-value">
+                  {hotels.reduce((acc, h) => acc + (h._count?.reviews ?? 0), 0)}
+                </div>
+                <div className="stat-label">Total Reviews</div>
+              </div>
+              <div className="card card-compact stat-card">
+                <div className="stat-value">
+                  {hotels.reduce((acc, h) => acc + (h.stats?.googleCount ?? 0), 0)}
+                </div>
+                <div className="stat-label">Google Reviews</div>
+              </div>
+              <div className="card card-compact stat-card">
+                <div className="stat-value">
+                  {hotels.reduce((acc, h) => acc + (h.stats?.tripadvisorCount ?? 0), 0)}
+                </div>
+                <div className="stat-label">TripAdvisor Reviews</div>
+              </div>
             </div>
           </div>
         )}
