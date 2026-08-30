@@ -52,7 +52,7 @@ export default function AdminPage() {
   const [formResult, setFormResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<{ google: any[]; tripadvisor: any[] } | null>(null);
+  const [searchResults, setSearchResults] = useState<{ merged: any[] } | null>(null);
 
   const [backfillSource, setBackfillSource] = useState("both");
   const [backfillLimit, setBackfillLimit] = useState("50");
