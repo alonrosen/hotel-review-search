@@ -489,6 +489,13 @@ export default function Home() {
 
         {results && (
           <div className="section-wrapper results-wrapper" ref={resultsSectionRef}>
+            <button 
+              className="btn btn-ghost" 
+              onClick={() => { window.history.back(); }} 
+              style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}
+            >
+              ← Back to Search Criteria
+            </button>
             <div className="results-header">
               <div className="results-count">
                 Found <strong>{results.totalCount}</strong> matching review{results.totalCount !== 1 ? "s" : ""}
