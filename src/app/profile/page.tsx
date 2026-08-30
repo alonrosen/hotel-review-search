@@ -13,15 +13,15 @@ export default function ProfilePage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [result, setResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  if (loading) {
-    return <div style={{ padding: 48, textAlign: "center" }}><span className="spinner" /></div>;
-  }
-
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
+
+  if (loading) {
+    return <div style={{ padding: 48, textAlign: "center" }}><span className="spinner" /></div>;
+  }
 
   if (!user) {
     return null;
