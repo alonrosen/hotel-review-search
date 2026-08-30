@@ -1,5 +1,6 @@
 /* ──────────────────────────────────────────────────────────────
    Prisma client singleton for Next.js (Prisma 7 + PrismaPg)
+   (Preview Environment Test)
    ────────────────────────────────────────────────────────────── */
 
 import { PrismaClient } from "@prisma/client";
