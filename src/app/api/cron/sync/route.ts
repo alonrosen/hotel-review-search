@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
 import { fetchAndUpsertReviews } from "@/lib/reviews";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   // In a real app, verify a secret token for cron jobs
   const authHeader = req.headers.get("authorization");

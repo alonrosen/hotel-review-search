@@ -3,6 +3,8 @@ import prisma from '@/lib/db';
 import { getSession, requireAuth } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getSession();

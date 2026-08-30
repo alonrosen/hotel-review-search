@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { headers } from "next/headers";
 
+export const dynamic = 'force-dynamic';
+
 async function authenticate() {
   const reqHeaders = await headers();
   const adminSecret = reqHeaders.get("x-admin-secret");

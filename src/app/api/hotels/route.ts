@@ -8,6 +8,8 @@ import { runSearchWithFallback } from "@/lib/search";
 import { requireAuth } from "@/lib/auth";
 import { sendHotelApprovedEmail } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   await requireAuth();
   

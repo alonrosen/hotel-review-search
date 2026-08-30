@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try { await requireAuth(['admin']); } catch { return Response.json({ error: "Unauthorized" }, { status: 401 }); }
 

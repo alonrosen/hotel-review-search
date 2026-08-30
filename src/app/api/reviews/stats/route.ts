@@ -2,6 +2,8 @@
 
 import prisma from "@/lib/db";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const hotels = await prisma.hotel.findMany({
     orderBy: { name: "asc" },
