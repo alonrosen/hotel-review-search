@@ -18,6 +18,7 @@ model Hotel {
   createdAt      DateTime @default(now()) @map("created_at")
   reviews        Review[]
   favourites     FavouriteHotel[]
+  searchLogs     SearchLog[]
 
   @@map("hotels")
 }
