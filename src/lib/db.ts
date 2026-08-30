@@ -7,7 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
-const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.DEV_PRISMA_DATABASE_URL || process.env.DEV_DATABASE_URL || process.env.DEV_POSTGRES_URL;
 
 function makeClient() {
   if (!connectionString) {
