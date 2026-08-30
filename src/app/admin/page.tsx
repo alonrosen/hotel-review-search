@@ -691,7 +691,9 @@ export default function AdminPage() {
 
             
             {isManagingHotel && (
-              <div className="admin-layout" style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 0" }}>
+              <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px 0", display: "flex", flexDirection: "column" }}>
+                <button className="btn btn-ghost desktop-only" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}>← Back to Directory</button>
+                <div className="admin-layout">
                 {hotelViewState === "menu" && (
                   <div className="mobile-only" style={{ width: "100%" }}>
                     <button className="btn btn-ghost" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}>← Back to Directory</button>
@@ -717,7 +719,6 @@ export default function AdminPage() {
                 
                 <div className={`admin-section ${hotelViewState === "edit" ? "" : "desktop-only"}`} style={{ display: "flex", flexDirection: "column" }}>
                   <button className="btn btn-ghost mobile-only" onClick={() => { setHotelViewState("menu"); window.history.pushState({ hotelViewState: "menu" }, "", "#menu"); }} style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}>← Back</button>
-                  <button className="btn btn-ghost desktop-only" onClick={handleGoBack} style={{ marginBottom: 16, padding: "6px 12px", alignSelf: "flex-start" }}>← Back to Directory</button>
                   <div className="section-title">Edit — {editingHotel.name}</div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                   {editFormJsx}
@@ -778,6 +779,7 @@ export default function AdminPage() {
                   </button>
                   </div>
                 </div>
+              </div>
               </div>
             )}
 
