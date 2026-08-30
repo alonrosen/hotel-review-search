@@ -152,14 +152,14 @@ export default function Home() {
 
 
 
-  // Auto-scroll to results when they are loaded
+  // Auto-scroll to results when loading starts or results change
   useEffect(() => {
-    if (results && resultsSectionRef.current) {
+    if ((results || loading) && resultsSectionRef.current) {
       setTimeout(() => {
         resultsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
     }
-  }, [results, page]);
+  }, [results, loading, page]);
 
   const handleSearch = useCallback(
     async (e?: FormEvent, targetPage: number = 1) => {
