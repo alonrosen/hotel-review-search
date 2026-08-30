@@ -842,22 +842,64 @@ export default function AdminPage() {
                             <td style={{ padding: "12px 8px", fontWeight: 600 }}>{u.name}</td>
                             <td style={{ padding: "12px 8px", color: "var(--text-secondary)" }}>{u.email}</td>
                             <td style={{ padding: "12px 8px" }}>
-                              <button className="btn btn-ghost btn-sm" style={{ padding: "4px 8px", fontSize: 13, background: u.role === 'admin' ? 'rgba(10,132,255,0.1)' : 'transparent', color: u.role === 'admin' ? 'var(--blue)' : 'var(--text-secondary)' }} onClick={() => handleUpdateUserRole(u.id, u.role === 'admin' ? 'user' : 'admin')} title={u.role === 'admin' ? "Admin" : "User"}>
-                                <span>{u.role === 'admin' ? '👑' : '👤'}</span>
-                                <span className="desktop-only" style={{ marginLeft: 6 }}>{u.role === 'admin' ? 'Admin' : 'User'}</span>
-                              </button>
+                              <select 
+                                className="input desktop-only" 
+                                value={u.role} 
+                                onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                                style={{ padding: "0 8px", fontSize: 13, height: 32, width: "100%", background: u.role === 'admin' ? 'rgba(10,132,255,0.1)' : 'rgba(255,255,255,0.05)', color: u.role === 'admin' ? 'var(--blue)' : 'var(--text-secondary)', border: "none", borderRadius: 8, outline: "none", cursor: "pointer", appearance: "none", WebkitAppearance: "none", MozAppearance: "none" }}
+                              >
+                                <option value="user" style={{ color: "var(--text-primary)", background: "#111" }}>👤 User</option>
+                                <option value="admin" style={{ color: "var(--text-primary)", background: "#111" }}>👑 Admin</option>
+                              </select>
+                              <select 
+                                className="input mobile-only" 
+                                value={u.role} 
+                                onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                                style={{ padding: "0", textAlign: "center", fontSize: 13, height: 32, width: 32, background: u.role === 'admin' ? 'rgba(10,132,255,0.1)' : 'rgba(255,255,255,0.05)', color: u.role === 'admin' ? 'var(--blue)' : 'var(--text-secondary)', border: "none", borderRadius: 8, outline: "none", cursor: "pointer", appearance: "none", WebkitAppearance: "none", MozAppearance: "none" }}
+                              >
+                                <option value="user" style={{ color: "var(--text-primary)", background: "#111" }}>👤</option>
+                                <option value="admin" style={{ color: "var(--text-primary)", background: "#111" }}>👑</option>
+                              </select>
                             </td>
                             <td style={{ padding: "12px 8px" }}>
-                              <button className="btn btn-ghost btn-sm" style={{ padding: "4px 8px", fontSize: 13, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)' }} onClick={() => handleUpdateUserStatus(u.id, u.status === 'active' ? 'pending' : 'active')} title={u.status === 'active' ? "Active" : "Pending"}>
-                                <span>{u.status === 'active' ? '✅' : '⏳'}</span>
-                                <span className="desktop-only" style={{ marginLeft: 6 }}>{u.status === 'active' ? 'Active' : 'Pending'}</span>
-                              </button>
+                              <select 
+                                className="input desktop-only" 
+                                value={u.status} 
+                                onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}
+                                style={{ padding: "0 8px", fontSize: 13, height: 32, width: "100%", background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)', border: "none", borderRadius: 8, outline: "none", cursor: "pointer", appearance: "none", WebkitAppearance: "none", MozAppearance: "none" }}
+                              >
+                                <option value="active" style={{ color: "var(--text-primary)", background: "#111" }}>✅ Active</option>
+                                <option value="pending" style={{ color: "var(--text-primary)", background: "#111" }}>⏳ Pending</option>
+                              </select>
+                              <select 
+                                className="input mobile-only" 
+                                value={u.status} 
+                                onChange={(e) => handleUpdateUserStatus(u.id, e.target.value)}
+                                style={{ padding: "0", textAlign: "center", fontSize: 13, height: 32, width: 32, background: u.status === 'pending' ? 'rgba(255,149,0,0.1)' : 'rgba(52,199,89,0.1)', color: u.status === 'pending' ? 'var(--orange)' : 'var(--green)', border: "none", borderRadius: 8, outline: "none", cursor: "pointer", appearance: "none", WebkitAppearance: "none", MozAppearance: "none" }}
+                              >
+                                <option value="active" style={{ color: "var(--text-primary)", background: "#111" }}>✅</option>
+                                <option value="pending" style={{ color: "var(--text-primary)", background: "#111" }}>⏳</option>
+                              </select>
                             </td>
                             <td style={{ padding: "12px 8px" }}>
-                              <button className="btn btn-ghost btn-sm" style={{ padding: "4px 8px", fontSize: 13, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)' }} onClick={() => handleUpdateUserVerification(u.id, !u.emailVerified)} title={u.emailVerified ? "Verified" : "Unverified"}>
-                                <span>{u.emailVerified ? '🟢' : '❌'}</span>
-                                <span className="desktop-only" style={{ marginLeft: 6 }}>{u.emailVerified ? 'Verified' : 'Unverified'}</span>
-                              </button>
+                              <select 
+                                className="input desktop-only" 
+                                value={u.emailVerified ? "verified" : "unverified"} 
+                                onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "verified")}
+                                style={{ padding: "0 8px", fontSize: 13, height: 32, width: "100%", background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)', border: "none", borderRadius: 8, outline: "none", cursor: "pointer", appearance: "none", WebkitAppearance: "none", MozAppearance: "none" }}
+                              >
+                                <option value="verified" style={{ color: "var(--text-primary)", background: "#111" }}>🟢 Verified</option>
+                                <option value="unverified" style={{ color: "var(--text-primary)", background: "#111" }}>❌ Unverified</option>
+                              </select>
+                              <select 
+                                className="input mobile-only" 
+                                value={u.emailVerified ? "verified" : "unverified"} 
+                                onChange={(e) => handleUpdateUserVerification(u.id, e.target.value === "verified")}
+                                style={{ padding: "0", textAlign: "center", fontSize: 13, height: 32, width: 32, background: !u.emailVerified ? 'rgba(255,59,48,0.1)' : 'rgba(52,199,89,0.1)', color: !u.emailVerified ? 'var(--red)' : 'var(--green)', border: "none", borderRadius: 8, outline: "none", cursor: "pointer", appearance: "none", WebkitAppearance: "none", MozAppearance: "none" }}
+                              >
+                                <option value="verified" style={{ color: "var(--text-primary)", background: "#111" }}>🟢</option>
+                                <option value="unverified" style={{ color: "var(--text-primary)", background: "#111" }}>❌</option>
+                              </select>
                             </td>
                             <td style={{ padding: "12px 8px", textAlign: "right" }}>
                               <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", flexWrap: "nowrap" }}>
