@@ -10,10 +10,9 @@ const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA
 
 function makeClient() {
   if (!connectionString) {
-    console.warn("DATABASE_URL or POSTGRES_PRISMA_URL is not set. Falling back to default PrismaClient.");
-    return new PrismaClient();
+    console.warn("DATABASE_URL or POSTGRES_PRISMA_URL is not set. Prisma may fail to connect.");
   }
-  const pool = new pg.Pool({ connectionString });
+  const pool = new pg.Pool(connectionString ? { connectionString } : {});
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
