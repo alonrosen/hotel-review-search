@@ -965,7 +965,7 @@ export default function AdminPage() {
                                 ) : (
                                   <div style={{ maxHeight: 200, overflowY: "auto", overflowX: "auto", border: "1px solid var(--border-color)", borderRadius: 6 }}>
                                     <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
-                                      <thead style={{ background: "#1a1a1a", position: "sticky", top: 0 }}>
+                                      <thead style={{ background: "#1a1a1a", position: "sticky", top: 0, zIndex: 10 }}>
                                         <tr>
                                           <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Date</th>
                                           <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Hotel</th>

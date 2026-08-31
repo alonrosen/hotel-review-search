@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "User not found" }, { status: 401 });
   }
 
+
   if (!user.isSubscribed && user.role !== 'admin') {
     const settings = await prisma.setting.findMany({
       where: { key: { in: ['sub_free_searches', 'sub_free_period_value', 'sub_free_period_unit'] } }
@@ -128,21 +129,19 @@ export async function POST(req: NextRequest) {
     null as Date | null
   );
 
-  // Log the search (only if query is provided)
-  if (query) {
-    await prisma.searchLog.create({
-      data: {
-        userId: session.userId,
-        query,
-        hotels: {
-          connect: hotelIds.map((id: string) => ({ id }))
-        },
-        asOfDate: effectiveAsOfDate,
-        resultCount: totalCount,
-        lastMatchDate: totalCount > 0 ? latestReviewDate : null,
+  // Log the search
+  await prisma.searchLog.create({
+    data: {
+      userId: session.userId,
+      query: query || "",
+      hotels: {
+        connect: hotelIds.map((id: string) => ({ id }))
       },
-    });
-  }
+      asOfDate: effectiveAsOfDate,
+      resultCount: totalCount,
+      lastMatchDate: totalCount > 0 ? latestReviewDate : null,
+    },
+  });
 
   return Response.json({
     results,

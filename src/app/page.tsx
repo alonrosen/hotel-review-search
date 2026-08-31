@@ -338,6 +338,28 @@ export default function Home() {
     });
   }
 
+  const visibleHotelIds = filteredHotels.map(h => h.id);
+  const allVisibleSelected = visibleHotelIds.length > 0 && visibleHotelIds.every(id => selectedHotels.some(sh => sh.id === id));
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      // Unselect all visible
+      setSelectedHotels(prev => {
+        const next = prev.filter(h => !visibleHotelIds.includes(h.id));
+        if (next.length === 0) setShowSearchForm(false);
+        return next;
+      });
+      setAsOfDate("");
+    } else {
+      // Select all visible
+      setSelectedHotels(prev => {
+        const toAdd = filteredHotels.filter(h => !prev.some(sh => sh.id === h.id));
+        return [...prev, ...toAdd];
+      });
+      setAsOfDate("");
+    }
+  };
+
   return (
     <>
       <header className="header">
@@ -393,6 +415,14 @@ export default function Home() {
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", marginBottom: 24, gap: 16 }}>
             <div className="section-title" style={{ margin: 0 }}>Select a Hotel</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+              <button 
+                className="btn btn-ghost btn-sm" 
+                onClick={toggleSelectAll} 
+                style={{ fontSize: 13, padding: "4px 8px" }}
+                disabled={filteredHotels.length === 0}
+              >
+                {allVisibleSelected ? "Unselect All" : "Select All"}
+              </button>
               <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                 <input type="checkbox" checked={showFavouritesOnly} onChange={(e) => setShowFavouritesOnly(e.target.checked)} />
                 Favourites Only
