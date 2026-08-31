@@ -3,6 +3,11 @@
 import { useState, useEffect, useCallback, FormEvent, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
+
+// Initialize Stripe outside of component to avoid recreating it
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -75,6 +80,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallMessage, setPaywallMessage] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const searchSectionRef = useRef<HTMLDivElement>(null);
   const resultsSectionRef = useRef<HTMLDivElement>(null);
@@ -187,7 +196,11 @@ export default function Home() {
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Search failed");
+        if (!res.ok) {
+          const errObj = new Error(data.message || data.error || "Search failed");
+          (errObj as any).code = data.error;
+          throw errObj;
+        }
 
         setResults(data);
         setPage(targetPage);
@@ -196,13 +209,33 @@ export default function Home() {
           window.history.pushState({ step: "results" }, "", "#results");
         }
       } catch (err: any) {
-        setError(err.message || "Search failed. Please try again.");
+        if (err.code === "PAYWALL_LIMIT_REACHED" || err.message === "PAYWALL_LIMIT_REACHED") {
+          setShowPaywall(true);
+          setPaywallMessage(err.message !== "PAYWALL_LIMIT_REACHED" ? err.message : "You've reached your search limit.");
+        } else {
+          setError(err.message || "Search failed. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
     },
     [selectedHotels, query, source, asOfDate]
   );
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setClientSecret(data.clientSecret);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to initiate checkout");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   const handleSelectHotel = useCallback((hotel: Hotel) => {
     setSelectedHotels(prev => {
@@ -609,6 +642,42 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {showPaywall && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }} onClick={() => { if (!clientSecret) setShowPaywall(false); }}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ maxWidth: clientSecret ? 800 : 400, width: "100%", maxHeight: "90vh", overflowY: "auto", textAlign: clientSecret ? "left" : "center", padding: clientSecret ? 0 : 32, position: "relative", backgroundColor: clientSecret ? "#ffffff" : "var(--bg-card)" }}>
+            {clientSecret && (
+              <button onClick={() => { setShowPaywall(false); setClientSecret(null); }} className="btn btn-ghost btn-sm" style={{ position: "absolute", top: 8, right: 8, zIndex: 10, color: "#333", background: "rgba(0,0,0,0.1)" }}>✕ Close</button>
+            )}
+            
+            {!clientSecret ? (
+              <>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+                <h2 style={{ marginBottom: 16 }}>Search Limit Reached</h2>
+                <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
+                  {paywallMessage}
+                </p>
+                <p style={{ color: "var(--text-secondary)", marginBottom: 32, fontSize: 14 }}>
+                  Subscribe now for unlimited searches and full access to our hotel review database. You can pay securely via Credit Card, Apple Pay, or Google Pay.
+                </p>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexDirection: "column" }}>
+                  <button className="btn btn-primary" onClick={handleCheckout} disabled={checkoutLoading} style={{ width: "100%" }}>
+                    {checkoutLoading ? <span className="spinner" /> : "Subscribe Now"}
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setShowPaywall(false)} style={{ width: "100%" }}>Cancel</button>
+                </div>
+              </>
+            ) : (
+              <div id="checkout" style={{ width: "100%", height: "100%", minHeight: 600, overflow: "hidden", borderRadius: "12px" }}>
+                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                  <EmbeddedCheckout />
+                </EmbeddedCheckoutProvider>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </>
   );
 }

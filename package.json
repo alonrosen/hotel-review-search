@@ -12,6 +12,8 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@stripe/react-stripe-js": "^6.8.2",
+    "@stripe/stripe-js": "^9.15.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/toolbar": "^0.2.7",
     "bcryptjs": "^3.0.3",
@@ -22,7 +24,8 @@
     "prisma": "^7.10.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "resend": "^6.25.0"
+    "resend": "^6.25.0",
+    "stripe": "^22.6.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

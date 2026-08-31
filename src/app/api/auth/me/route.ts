@@ -21,6 +21,8 @@ export async function GET() {
         email: true,
         role: true,
         status: true,
+        isSubscribed: true,
+        stripeSubscriptionId: true,
       }
     });
 
@@ -72,6 +74,8 @@ export async function PUT(req: Request) {
         email: true,
         role: true,
         status: true,
+        isSubscribed: true,
+        stripeSubscriptionId: true,
       }
     });
 

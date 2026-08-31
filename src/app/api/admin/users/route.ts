@@ -16,6 +16,7 @@ export async function GET() {
         role: true,
         status: true,
         emailVerified: true,
+        isSubscribed: true,
         createdAt: true,
         searchLogs: {
           take: 50,

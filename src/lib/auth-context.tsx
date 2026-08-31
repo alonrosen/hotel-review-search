@@ -9,6 +9,8 @@ export interface User {
   email: string;
   role: string;
   status: string;
+  isSubscribed?: boolean;
+  stripeSubscriptionId?: string | null;
 }
 
 interface AuthContextType {

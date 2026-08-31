@@ -11,7 +11,22 @@ export default function ProfilePage() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState(user?.email || "");
   const [saveLoading, setSaveLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [result, setResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{ cancelAtPeriodEnd: boolean, currentPeriodEnd: number } | null>(null);
+
+  useEffect(() => {
+    if (user?.isSubscribed && user.stripeSubscriptionId && user.stripeSubscriptionId !== "free_granted_by_admin") {
+      fetch("/api/stripe/subscription")
+        .then(res => res.json())
+        .then(data => {
+          if (data.subscription) {
+            setSubscriptionInfo(data.subscription);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -56,6 +71,22 @@ export default function ProfilePage() {
       setSaveLoading(false);
     }
   };
+  const handleCancelSubscription = async () => {
+    if (!confirm("Are you sure you want to cancel your subscription? It will remain active until the end of the billing period.")) return;
+    setCancelLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/stripe/cancel", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to cancel subscription");
+      setResult({ type: "success", message: data.message });
+      setSubscriptionInfo(prev => prev ? { ...prev, cancelAtPeriodEnd: true } : null);
+    } catch (err: any) {
+      setResult({ type: "error", message: err.message });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   return (
     <>
@@ -77,8 +108,42 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <div className="container page-content" style={{ maxWidth: 500, marginTop: 48 }}>
+      <div className="container page-content" style={{ maxWidth: 600, marginTop: 48 }}>
         <div className="card">
+          
+          {user.isSubscribed && (
+            <div style={{ marginBottom: 32, paddingBottom: 32, borderBottom: "1px solid var(--border-color)" }}>
+              <h2 style={{ marginBottom: 16, fontSize: 20 }}>Subscription</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--bg-glass)", padding: 24, borderRadius: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: "var(--green)", fontSize: 16 }}>Unlimited Searches Active</div>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 6 }}>You have full access to our database.</div>
+                </div>
+                {user.stripeSubscriptionId && user.stripeSubscriptionId !== "free_granted_by_admin" && (
+                  <div>
+                    {subscriptionInfo?.cancelAtPeriodEnd ? (
+                      <div style={{ textAlign: "right" }}>
+                        <button className="btn btn-ghost" disabled style={{ color: "var(--text-tertiary)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: 8, opacity: 0.5, cursor: "not-allowed" }}>
+                          Canceled
+                        </button>
+                        <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 6 }}>
+                          Subscription will end at {new Date(subscriptionInfo.currentPeriodEnd * 1000).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ) : (
+                      <button className="btn btn-ghost" onClick={handleCancelSubscription} disabled={cancelLoading} style={{ color: "var(--red)", border: "1px solid rgba(255, 59, 48, 0.2)", borderRadius: 8 }}>
+                        {cancelLoading ? <span className="spinner" /> : "Cancel"}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {user.stripeSubscriptionId === "free_granted_by_admin" && (
+                  <span className="badge badge-google" style={{ background: "rgba(10,132,255,0.1)", color: "var(--blue)", border: "none", fontSize: 12, padding: "4px 8px" }}>Gifted by Admin</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <h2 style={{ marginBottom: 24, fontSize: 20 }}>Account Settings</h2>
           
           <form onSubmit={handleSave}>

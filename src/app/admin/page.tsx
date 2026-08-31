@@ -82,6 +82,11 @@ export default function AdminPage() {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [providerGoogle, setProviderGoogle] = useState("rapidapi");
   const [providerTripAdvisor, setProviderTripAdvisor] = useState("rapidapi");
+  const [subPrice, setSubPrice] = useState("99.00");
+  const [subFreeSearches, setSubFreeSearches] = useState("5");
+  const [subFreePeriodValue, setSubFreePeriodValue] = useState("1");
+  const [subFreePeriodUnit, setSubFreePeriodUnit] = useState("day");
+  const [isStripePrice, setIsStripePrice] = useState(false);
   const [settingsResult, setSettingsResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // --- Logs State ---
@@ -173,6 +178,11 @@ export default function AdminPage() {
       .then((data) => {
         setProviderGoogle(data.provider_google || "rapidapi");
         setProviderTripAdvisor(data.provider_tripadvisor || "rapidapi");
+        setSubPrice(data.sub_price || "99.00");
+        setSubFreeSearches(data.sub_free_searches || "5");
+        setSubFreePeriodValue(data.sub_free_period_value || "1");
+        setSubFreePeriodUnit(data.sub_free_period_unit || "day");
+        setIsStripePrice(data.isStripePrice === "true");
         setSettingsLoading(false);
       })
       .catch(() => setSettingsLoading(false));
@@ -238,6 +248,22 @@ export default function AdminPage() {
       loadUsers();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleUpdateUserSubscription = async (id: string, action: string) => {
+    try {
+      const res = await fetch(`/api/admin/users/subscription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id, action })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update subscription");
     }
   };
 
@@ -459,6 +485,10 @@ export default function AdminPage() {
         body: JSON.stringify({
           provider_google: providerGoogle,
           provider_tripadvisor: providerTripAdvisor,
+          sub_price: subPrice,
+          sub_free_searches: subFreeSearches,
+          sub_free_period_value: subFreePeriodValue,
+          sub_free_period_unit: subFreePeriodUnit,
         }),
       });
       if (!res.ok) throw new Error("Failed to save settings");
@@ -804,7 +834,7 @@ export default function AdminPage() {
                     <table className="table admin-table">
                       <thead>
                         <tr>
-                          <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Verified</th><th>Joined</th><th>Actions</th>
+                          <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Verified</th><th>Subscribed</th><th>Joined</th><th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -814,6 +844,7 @@ export default function AdminPage() {
                             <td><div className="loading-skeleton" style={{ width: 140, height: 16 }} /></td>
                             <td><div className="loading-skeleton" style={{ width: 60, height: 24, borderRadius: 12 }} /></td>
                             <td><div className="loading-skeleton" style={{ width: 80, height: 24, borderRadius: 12 }} /></td>
+                            <td><div className="loading-skeleton" style={{ width: 24, height: 24, borderRadius: '50%' }} /></td>
                             <td><div className="loading-skeleton" style={{ width: 24, height: 24, borderRadius: '50%' }} /></td>
                             <td><div className="loading-skeleton" style={{ width: 80, height: 16 }} /></td>
                             <td><div className="loading-skeleton" style={{ width: 120, height: 32, borderRadius: 16 }} /></td>
@@ -832,6 +863,7 @@ export default function AdminPage() {
                         <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Role</th>
                         <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Status</th>
                         <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600 }}>Verified</th>
+                        <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "center" }}>Subscribed</th>
                         <th style={{ padding: "12px 8px", color: "var(--text-secondary)", fontWeight: 600, textAlign: "right" }}>Actions</th>
                       </tr>
                     </thead>
@@ -901,8 +933,20 @@ export default function AdminPage() {
                                 <option value="unverified" style={{ color: "var(--text-primary)", background: "#111" }}>❌</option>
                               </select>
                             </td>
+                            <td style={{ padding: "12px 8px", textAlign: "center" }}>
+                              <span style={{ fontSize: 18 }}>{u.isSubscribed ? '✅' : '❌'}</span>
+                            </td>
                             <td style={{ padding: "12px 8px", textAlign: "right" }}>
                               <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", flexWrap: "nowrap" }}>
+                                {u.stripeSubscriptionId === 'free_granted_by_admin' ? (
+                                  <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateUserSubscription(u.id, "revoke")} style={{ marginRight: 0, color: "var(--orange)" }} title="Revoke Free Sub">
+                                    <span>🚫</span><span className="desktop-only" style={{ marginLeft: 4 }}>Revoke Sub</span>
+                                  </button>
+                                ) : !u.isSubscribed ? (
+                                  <button className="btn btn-ghost btn-sm" onClick={() => handleUpdateUserSubscription(u.id, "grant")} style={{ marginRight: 0, color: "var(--green)" }} title="Gift Free Sub">
+                                    <span>🎁</span><span className="desktop-only" style={{ marginLeft: 4 }}>Gift Sub</span>
+                                  </button>
+                                ) : null}
                                 <button className="btn btn-ghost btn-sm" onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)} style={{ marginRight: 0, color: "var(--accent)" }} title="Logs">
                                 <span>📋</span><span className="desktop-only" style={{ marginLeft: 4 }}>Logs ({u.searchLogs?.length || 0})</span>
                               </button>
@@ -914,14 +958,14 @@ export default function AdminPage() {
                           </tr>
                           {expandedUserId === u.id && (
                             <tr style={{ background: "rgba(0,0,0,0.2)" }}>
-                              <td colSpan={6} style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-color)" }}>
+                              <td colSpan={7} style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-color)" }}>
                                 <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: "var(--text-secondary)" }}>Recent Search Logs</h4>
                                 {(!u.searchLogs || u.searchLogs.length === 0) ? (
                                   <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>No search logs recorded for this user.</div>
                                 ) : (
                                   <div style={{ maxHeight: 200, overflowY: "auto", overflowX: "auto", border: "1px solid var(--border-color)", borderRadius: 6 }}>
                                     <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
-                                      <thead style={{ background: "var(--bg-glass)", position: "sticky", top: 0 }}>
+                                      <thead style={{ background: "#1a1a1a", position: "sticky", top: 0 }}>
                                         <tr>
                                           <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Date</th>
                                           <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600 }}>Hotel</th>
@@ -1081,6 +1125,39 @@ export default function AdminPage() {
                   </div>
                 ) : (
                 <form onSubmit={handleSaveSettings}>
+                  <h3 style={{ marginBottom: 16 }}>Subscription & Limits</h3>
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label>Subscription Price (USD)</label>
+                    <input type="number" step="0.01" className="input" value={subPrice} onChange={e => setSubPrice(e.target.value)} readOnly={isStripePrice} style={isStripePrice ? { backgroundColor: 'var(--bg-glass)', opacity: 0.8 } : {}} />
+                    {isStripePrice && (
+                      <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>
+                        Price is automatically fetched from Stripe product "Unlimited Searches Subscription".
+                      </div>
+                    )}
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label>Allowed Free Searches</label>
+                    <input type="number" className="input" value={subFreeSearches} onChange={e => setSubFreeSearches(e.target.value)} />
+                  </div>
+                  <div className="form-row" style={{ gap: 12, marginBottom: 24 }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Timeframe Value</label>
+                      <input type="number" className="input" value={subFreePeriodValue} onChange={e => setSubFreePeriodValue(e.target.value)} />
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Timeframe Unit</label>
+                      <select className="select" value={subFreePeriodUnit} onChange={e => setSubFreePeriodUnit(e.target.value)}>
+                        <option value="hour">Hours</option>
+                        <option value="day">Days</option>
+                        <option value="week">Weeks</option>
+                        <option value="month">Months</option>
+                        <option value="year">Years</option>
+                        <option value="lifetime">Lifetime</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <h3 style={{ marginBottom: 16, marginTop: 32, borderTop: "1px solid var(--border-color)", paddingTop: 24 }}>API Providers</h3>
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label>Default Google Reviews Provider</label>
                     <select className="select" value={providerGoogle} onChange={(e) => setProviderGoogle(e.target.value)}>
