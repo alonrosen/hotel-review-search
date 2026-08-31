@@ -25,6 +25,47 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) {
+    return Response.json({ error: "User not found" }, { status: 401 });
+  }
+
+  if (!user.isSubscribed && user.role !== 'admin') {
+    const settings = await prisma.setting.findMany({
+      where: { key: { in: ['sub_free_searches', 'sub_free_period_value', 'sub_free_period_unit'] } }
+    });
+    
+    let limit = 5;
+    let periodValue = 1;
+    let periodUnit = "day";
+    
+    for (const s of settings) {
+      if (s.key === "sub_free_searches") limit = parseInt(s.value) || 5;
+      if (s.key === "sub_free_period_value") periodValue = parseInt(s.value) || 1;
+      if (s.key === "sub_free_period_unit") periodUnit = s.value;
+    }
+    
+    let startDate: Date | null = new Date();
+    if (periodUnit === "hour") startDate.setHours(startDate.getHours() - periodValue);
+    else if (periodUnit === "day") startDate.setDate(startDate.getDate() - periodValue);
+    else if (periodUnit === "week") startDate.setDate(startDate.getDate() - (periodValue * 7));
+    else if (periodUnit === "month") startDate.setMonth(startDate.getMonth() - periodValue);
+    else if (periodUnit === "year") startDate.setFullYear(startDate.getFullYear() - periodValue);
+    else startDate = null; // lifetime
+    
+    const countWhere: any = { userId: session.userId };
+    if (startDate) countWhere.createdAt = { gte: startDate };
+    
+    const searchCount = await prisma.searchLog.count({ where: countWhere });
+    
+    if (searchCount >= limit) {
+      return Response.json({ 
+        error: "PAYWALL_LIMIT_REACHED", 
+        message: `You've reached your limit of ${limit} free searches per ${periodValue === 1 ? '' : periodValue + ' '}${periodUnit}${periodValue === 1 ? '' : 's'}.` 
+      }, { status: 403 });
+    }
+  }
+
   // Determine the as-of date
   let effectiveAsOfDate: Date | null = null;
 
@@ -87,21 +128,19 @@ export async function POST(req: NextRequest) {
     null as Date | null
   );
 
-  // Log the search (only if query is provided)
-  if (query) {
-    await prisma.searchLog.create({
-      data: {
-        userId: session.userId,
-        query,
-        hotels: {
-          connect: hotelIds.map((id: string) => ({ id }))
-        },
-        asOfDate: effectiveAsOfDate,
-        resultCount: totalCount,
-        lastMatchDate: totalCount > 0 ? latestReviewDate : null,
+  // Log the search
+  await prisma.searchLog.create({
+    data: {
+      userId: session.userId,
+      query: query || "",
+      hotels: {
+        connect: hotelIds.map((id: string) => ({ id }))
       },
-    });
-  }
+      asOfDate: effectiveAsOfDate,
+      resultCount: totalCount,
+      lastMatchDate: totalCount > 0 ? latestReviewDate : null,
+    },
+  });
 
   return Response.json({
     results,
