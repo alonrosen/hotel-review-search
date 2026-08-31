@@ -121,7 +121,9 @@ export default function ProfilePage() {
                 </div>
                 {user.stripeSubscriptionId && user.stripeSubscriptionId !== "free_granted_by_admin" && (
                   <div>
-                    {subscriptionInfo?.cancelAtPeriodEnd ? (
+                    {subscriptionInfo === null ? (
+                      <div className="loading-skeleton" style={{ width: 80, height: 36, borderRadius: 8 }} />
+                    ) : subscriptionInfo.cancelAtPeriodEnd ? (
                       <div style={{ textAlign: "right" }}>
                         <button className="btn btn-ghost" disabled style={{ color: "var(--text-tertiary)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: 8, opacity: 0.5, cursor: "not-allowed" }}>
                           Canceled
