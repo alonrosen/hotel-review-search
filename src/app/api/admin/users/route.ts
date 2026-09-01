@@ -9,6 +9,7 @@ export async function GET() {
     await requireAuth(['admin']);
     
     const users = await prisma.user.findMany({
+      take: 100,
       select: {
         id: true,
         name: true,

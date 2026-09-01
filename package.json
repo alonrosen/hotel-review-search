@@ -13,6 +13,8 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@react-oauth/google": "^0.13.5",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.3",
     "@vercel/analytics": "^2.0.1",
     "@vercel/toolbar": "^0.2.7",
     "bcryptjs": "^3.0.3",
