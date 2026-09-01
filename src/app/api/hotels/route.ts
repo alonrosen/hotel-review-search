@@ -15,44 +15,25 @@ export async function GET() {
   
   const hotels = await prisma.hotel.findMany({
     orderBy: { name: "asc" },
-    include: {
-      reviews: {
-        select: {
-          source: true,
-          reviewDate: true,
-          fetchedAt: true,
-        },
-      },
-    },
+  });
+
+  const reviewStats = await prisma.review.groupBy({
+    by: ['hotelId', 'source'],
+    _count: { _all: true },
+    _max: { reviewDate: true, fetchedAt: true },
   });
 
   const formattedHotels = hotels.map((hotel) => {
-    const googleReviews = hotel.reviews.filter((r) => r.source === "google");
-    const taReviews = hotel.reviews.filter((r) => r.source === "tripadvisor");
+    const hotelStats = reviewStats.filter(s => s.hotelId === hotel.id);
+    
+    const googleStats = hotelStats.find(s => s.source === 'google');
+    const taStats = hotelStats.find(s => s.source === 'tripadvisor');
 
-    const latestGoogle =
-      googleReviews.length > 0
-        ? googleReviews.reduce(
-            (latest, r) => (r.reviewDate && r.reviewDate > latest ? r.reviewDate : latest),
-            googleReviews[0].reviewDate || new Date(0)
-          )
-        : null;
-
-    const latestTA =
-      taReviews.length > 0
-        ? taReviews.reduce(
-            (latest, r) => (r.reviewDate && r.reviewDate > latest ? r.reviewDate : latest),
-            taReviews[0].reviewDate || new Date(0)
-          )
-        : null;
-
-    const latestFetchDate = 
-      hotel.reviews.length > 0
-        ? hotel.reviews.reduce(
-            (latest, r) => (r.fetchedAt && r.fetchedAt > latest ? r.fetchedAt : latest),
-            hotel.reviews[0].fetchedAt || new Date(0)
-          )
-        : null;
+    const maxFetchG = googleStats?._max?.fetchedAt?.getTime() || 0;
+    const maxFetchT = taStats?._max?.fetchedAt?.getTime() || 0;
+    const latestFetchDate = maxFetchG > maxFetchT 
+        ? googleStats?._max?.fetchedAt 
+        : (maxFetchT > 0 ? taStats?._max?.fetchedAt : null);
 
     return {
       id: hotel.id,
@@ -62,12 +43,12 @@ export async function GET() {
       tripAdvisorUrl: hotel.tripAdvisorUrl,
       city: hotel.city,
       country: hotel.country,
-      _count: { reviews: hotel.reviews.length },
+      _count: { reviews: (googleStats?._count?._all || 0) + (taStats?._count?._all || 0) },
       stats: {
-        googleCount: googleReviews.length,
-        tripadvisorCount: taReviews.length,
-        latestGoogleReviewDate: latestGoogle,
-        latestTripadvisorReviewDate: latestTA,
+        googleCount: googleStats?._count?._all || 0,
+        tripadvisorCount: taStats?._count?._all || 0,
+        latestGoogleReviewDate: googleStats?._max?.reviewDate || null,
+        latestTripadvisorReviewDate: taStats?._max?.reviewDate || null,
         lastFetchDate: latestFetchDate,
       },
     };
