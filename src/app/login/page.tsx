@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +16,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (!credentialResponse.credential) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Google login failed");
+      await refreshUser();
+      router.push("/");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +118,7 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div className="card" style={{ maxWidth: 400, width: "100%" }}>
         <h2 style={{ textAlign: "center", marginBottom: 20 }}>Hotel Review Search</h2>
-        
+
         {tab !== "verify" && (
           <div style={{ display: "flex", marginBottom: 20, borderBottom: "1px solid var(--border-color)" }}>
             <button
@@ -115,6 +137,26 @@ export default function LoginPage() {
         )}
 
         {error && <div className="toast toast-error" style={{ position: "relative", marginBottom: 20, right: "auto", bottom: "auto", maxWidth: "100%" }}>{error}</div>}
+
+        {tab !== "verify" && (
+          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""} locale="en">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google login failed")}
+                useOneTap
+                theme="filled_blue"
+                shape="circle"
+              />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", margin: "20px 0", color: "var(--text-tertiary)" }}>
+              <div style={{ flex: 1, height: 1, background: "var(--border-color)" }} />
+              <span style={{ padding: "0 10px", fontSize: 12, textTransform: "uppercase" }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: "var(--border-color)" }} />
+            </div>
+          </GoogleOAuthProvider>
+        )}
 
         {tab === "login" && (
           <form onSubmit={handleLogin}>

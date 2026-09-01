@@ -15,6 +15,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    if (!user.passwordHash) {
+      return NextResponse.json({ error: 'Please sign in with your social account.' }, { status: 401 });
+    }
+
     const isPasswordValid = await verifyPassword(password, user.passwordHash);
     if (!isPasswordValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });

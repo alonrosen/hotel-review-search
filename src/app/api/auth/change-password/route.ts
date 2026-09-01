@@ -20,6 +20,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    if (!user.passwordHash) {
+      return NextResponse.json({ error: 'Cannot change password for social login accounts' }, { status: 400 });
+    }
+
     const isPasswordValid = await verifyPassword(currentPassword, user.passwordHash);
     if (!isPasswordValid) {
       return NextResponse.json({ error: 'Incorrect current password' }, { status: 401 });
