@@ -12,7 +12,7 @@ interface SearchFormProps {
   asOfDate: string;
   setAsOfDate: (date: string) => void;
   handleSearch: (e?: React.FormEvent) => void;
-  searchSectionRef: React.RefObject<HTMLDivElement>;
+  searchSectionRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function SearchForm({

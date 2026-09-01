@@ -51,7 +51,7 @@ interface SearchResultsProps {
   results: SearchResponseType | null;
   loading: boolean;
   handleSearch: (e?: React.FormEvent, targetPage?: number) => void;
-  resultsSectionRef: React.RefObject<HTMLDivElement>;
+  resultsSectionRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function SearchResults({
