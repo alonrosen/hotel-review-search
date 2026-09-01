@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
@@ -16,6 +16,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [buttonWidth, setButtonWidth] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      setButtonWidth(containerRef.current.offsetWidth);
+    }
+    const handleResize = () => {
+      if (containerRef.current) {
+        setButtonWidth(containerRef.current.offsetWidth);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [tab]);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     if (!credentialResponse.credential) return;
@@ -140,14 +156,19 @@ export default function LoginPage() {
 
         {tab !== "verify" && (
           <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""} locale="en">
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError("Google login failed")}
-                useOneTap
-                theme="filled_blue"
-                shape="circle"
-              />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div ref={containerRef} style={{ width: "100%", display: "flex", justifyContent: "center", minHeight: 40 }}>
+                {buttonWidth && (
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError("Google login failed")}
+                    useOneTap
+                    theme="filled_blue"
+                    shape="pill"
+                    width={String(buttonWidth)}
+                  />
+                )}
+              </div>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", margin: "20px 0", color: "var(--text-tertiary)" }}>
