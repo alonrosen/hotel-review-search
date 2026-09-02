@@ -43,8 +43,10 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credentialResponse.credential }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Google login failed");
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch(e) {}
+      if (!res.ok) throw new Error(data.error || `Google login failed (${res.status})`);
       await refreshUser();
       router.push("/");
     } catch (err: any) {
@@ -64,12 +66,14 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch(e) {}
       if (!res.ok) {
         if (data.error === "Please verify your email first") {
           setTab("verify");
         } else {
-          throw new Error(data.error || "Login failed");
+          throw new Error(data.error || `Login failed (${res.status})`);
         }
       } else {
         await refreshUser();
@@ -92,8 +96,10 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Registration failed");
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch(e) {}
+      if (!res.ok) throw new Error(data.error || `Registration failed (${res.status})`);
       setTab("verify");
     } catch (err: any) {
       setError(err.message);
@@ -112,8 +118,10 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Verification failed");
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch(e) {}
+      if (!res.ok) throw new Error(data.error || `Verification failed (${res.status})`);
       // verification successful, now try logging in
       const loginRes = await fetch("/api/auth/login", {
         method: "POST",

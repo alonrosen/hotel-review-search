@@ -34,6 +34,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<"hotels" | "users" | "requests" | "settings" | "logs" | "stats">("hotels");
+  const [fulfillRequest, setFulfillRequest] = useState<any>(null);
 
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [hotelsLoading, setHotelsLoading] = useState(true);
@@ -100,9 +101,9 @@ export default function AdminPage() {
       </header>
 
       <div className="container page-content" style={{ marginTop: 24 }}>
-        {activeTab === "hotels" && <HotelsTab hotels={hotels} loadHotels={loadHotels} hotelsLoading={hotelsLoading} />}
+        {activeTab === "hotels" && <HotelsTab hotels={hotels} loadHotels={loadHotels} hotelsLoading={hotelsLoading} fulfillRequest={fulfillRequest} clearFulfillRequest={() => setFulfillRequest(null)} />}
         {activeTab === "users" && <UsersTab />}
-        {activeTab === "requests" && <RequestsTab />}
+        {activeTab === "requests" && <RequestsTab onFulfillRequest={(req) => { setFulfillRequest(req); setActiveTab("hotels"); }} />}
         {activeTab === "settings" && <SettingsTab />}
         {activeTab === "logs" && <LogsTab />}
         {activeTab === "stats" && <StatsTab hotels={hotels} />}

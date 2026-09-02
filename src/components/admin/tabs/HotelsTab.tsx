@@ -19,7 +19,7 @@ interface Hotel {
   };
 }
 
-export default function HotelsTab({ hotels, loadHotels, hotelsLoading }: { hotels: Hotel[], loadHotels: () => void, hotelsLoading: boolean }) {
+export default function HotelsTab({ hotels, loadHotels, hotelsLoading, fulfillRequest, clearFulfillRequest }: { hotels: Hotel[], loadHotels: () => void, hotelsLoading: boolean, fulfillRequest?: any, clearFulfillRequest?: () => void }) {
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [hotelViewState, setHotelViewState] = useState<"list" | "menu" | "edit" | "backfill" | "new">("list");
   const [hotelFilter, setHotelFilter] = useState("");
@@ -53,6 +53,17 @@ export default function HotelsTab({ hotels, loadHotels, hotelsLoading }: { hotel
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  useEffect(() => {
+    if (fulfillRequest) {
+      clearForm();
+      setHotelViewState("new");
+      window.history.pushState({ hotelViewState: "new" }, "", "#new");
+      setFormName(fulfillRequest.name || "");
+      setFormCity(fulfillRequest.city || "");
+      setFormCountry(fulfillRequest.country || "");
+    }
+  }, [fulfillRequest]);
 
   const selectHotel = (hotel: Hotel) => {
     setEditingHotel(hotel);
@@ -155,6 +166,7 @@ export default function HotelsTab({ hotels, loadHotels, hotelsLoading }: { hotel
         googlePlaceId: formGooglePlaceId.trim() || undefined,
         tripAdvisorId: formTripAdvisorId.trim() || undefined,
         tripAdvisorUrl: formTripAdvisorUrl.trim() || undefined,
+        requestId: (!editingHotel && fulfillRequest) ? fulfillRequest.id : undefined,
       };
       const isEdit = !!editingHotel;
       const res = await fetch("/api/hotels", {
@@ -169,7 +181,10 @@ export default function HotelsTab({ hotels, loadHotels, hotelsLoading }: { hotel
         message: isEdit ? `"${data.name}" updated successfully!` : `"${data.name}" created successfully!`,
       });
       loadHotels();
-      if (!isEdit) clearForm();
+      if (!isEdit) {
+        clearForm();
+        if (clearFulfillRequest) clearFulfillRequest();
+      }
     } catch (err: any) {
       setFormResult({ type: "error", message: err.message });
     } finally {

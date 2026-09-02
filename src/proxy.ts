@@ -3,13 +3,14 @@ import type { NextRequest } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
-// Create a new ratelimiter, that allows 30 requests per 10 seconds
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(30, '10 s'),
-  ephemeralCache: new Map(),
-  analytics: true,
-});
+const ratelimit = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(30, '10 s'),
+      ephemeralCache: new Map(),
+      analytics: true,
+    })
+  : null;
 
 export async function proxy(request: NextRequest) {
   const res = NextResponse.next();
@@ -23,7 +24,7 @@ export async function proxy(request: NextRequest) {
   res.headers.set('Referrer-Policy', 'origin-when-cross-origin');
 
   // Only apply rate limiting to API routes
-  if (request.nextUrl.pathname.startsWith('/api')) {
+  if (ratelimit && request.nextUrl.pathname.startsWith('/api')) {
     // Vercel populates request.ip. Fallback to 127.0.0.1 for local dev
     const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
     

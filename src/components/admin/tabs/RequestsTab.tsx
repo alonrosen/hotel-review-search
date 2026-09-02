@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-export default function RequestsTab() {
+export default function RequestsTab({ onFulfillRequest }: { onFulfillRequest?: (request: any) => void }) {
   const [requests, setRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
 
@@ -102,7 +102,9 @@ export default function RequestsTab() {
                     <td style={{ padding: "12px 8px", textAlign: "right" }}>
                       {r.status === 'pending' && (
                         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                          {/* We might need a way to navigate back to HotelsTab to approve, or we can just update the request here */}
+                          {onFulfillRequest && (
+                            <button className="btn btn-primary btn-sm" onClick={() => onFulfillRequest(r)} title="Fulfill">✅ <span className="desktop-only" style={{ marginLeft: 4 }}>Fulfill</span></button>
+                          )}
                           <button className="btn btn-secondary btn-sm" onClick={() => handleUpdateRequest(r.id, "reject")} title="Reject">❌ <span className="desktop-only" style={{ marginLeft: 4 }}>Reject</span></button>
                         </div>
                       )}
